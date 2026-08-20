@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   color: #e2e8f0;
   background: #07111f;
   font-synthesis: none;
@@ -10,16 +10,45 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 80% 0%, rgba(14, 116, 144, 0.18), transparent 30rem),
+    linear-gradient(rgba(7, 17, 31, 0.92), rgba(7, 17, 31, 0.98)),
+    repeating-linear-gradient(0deg, transparent 0, transparent 47px, rgba(148, 163, 184, 0.035) 48px),
+    repeating-linear-gradient(90deg, transparent 0, transparent 47px, rgba(148, 163, 184, 0.035) 48px),
+    radial-gradient(circle at 80% 0%, rgba(14, 116, 144, 0.26), transparent 31rem),
     #07111f;
 }
 
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.06), transparent 24rem);
+}
+
 button,
-a {
+input,
+select {
   font: inherit;
+}
+
+button,
+a,
+select,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
 }
