@@ -52,3 +52,31 @@ input[type="date"],
 input[type="time"] {
   color-scheme: dark;
 }
+
+.presentation-control {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  color: rgb(226 232 240);
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.presentation-control:hover {
+  border-color: rgba(165, 243, 252, 0.4);
+  background: rgba(165, 243, 252, 0.1);
+  color: white;
+}
+
+.presentation-control:focus-visible {
+  outline: 2px solid rgb(165 243 252);
+  outline-offset: 3px;
+}
+
+.presentation-control-wide {
+  min-width: 7.5rem;
+  padding: 0 1rem;
+}
