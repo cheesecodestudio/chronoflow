@@ -1,0 +1,27 @@
+- main [ref=e85]:
+  - generic [ref=e86]:
+    - generic [ref=e87]:
+      - link "Salir a Manage View" [ref=e88] [cursor=pointer]:
+        - /url: /manage
+        - generic [ref=e89]: ←
+        - text: Manage View
+      - paragraph [ref=e90]: Chronoflow / live
+    - generic [ref=e91]:
+      - generic [ref=e92]: Counter
+      - heading "Browser timer" [level=1] [ref=e94]
+      - paragraph [ref=e95]: America/Guatemala
+      - generic [ref=e96]:
+        - paragraph [ref=e97]: Tiempo transcurrido
+        - paragraph [ref=e98]: 38 segundos
+  - generic [ref=e100]:
+    - generic [ref=e101]:
+      - generic [ref=e102]: "01"
+      - generic [ref=e103]: /
+      - generic [ref=e104]: "01"
+      - generic [ref=e105]: ·
+      - generic [ref=e106]: Reproduciendo
+    - generic [ref=e107]:
+      - button "Timer anterior" [ref=e108]: ←
+      - button "Pausar presentación" [ref=e109]: Ⅱ Pausar
+      - button "Siguiente timer" [ref=e110]: →
+      - button "Activar fullscreen" [ref=e111]: ↗
