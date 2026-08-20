@@ -114,13 +114,18 @@ describe('PresentationPage', () => {
 
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
 
+    // Auto-advance fires after 3000ms, then transition takes 560ms (280+280)
     await act(async () => {
-      vi.advanceTimersByTime(3000)
+      vi.advanceTimersByTime(3000) // wait for auto-advance trigger
+      vi.advanceTimersByTime(280)  // fade-out
+      vi.advanceTimersByTime(280)  // fade-in
     })
     expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument()
 
     await act(async () => {
       vi.advanceTimersByTime(3000)
+      vi.advanceTimersByTime(280)
+      vi.advanceTimersByTime(280)
     })
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
   })
@@ -140,8 +145,16 @@ describe('PresentationPage', () => {
     expect(screen.getByRole('button', { name: 'Reanudar presentación' })).toBeInTheDocument()
 
     fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await act(async () => {
+      vi.advanceTimersByTime(280)
+      vi.advanceTimersByTime(280)
+    })
     expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    await act(async () => {
+      vi.advanceTimersByTime(280)
+      vi.advanceTimersByTime(280)
+    })
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
     fireEvent.keyDown(window, { key: ' ' })
     expect(screen.getByRole('button', { name: 'Pausar presentación' })).toBeInTheDocument()
