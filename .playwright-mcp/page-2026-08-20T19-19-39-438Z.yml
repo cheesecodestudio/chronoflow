@@ -1,0 +1,65 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - link "Chronoflow, Manage View" [ref=e6] [cursor=pointer]:
+        - /url: /manage
+        - generic [ref=e7]: cf
+        - generic [ref=e8]:
+          - generic [ref=e9]: Chronoflow
+          - generic [ref=e10]: time observatory
+      - navigation [ref=e11]:
+        - link "Manage" [ref=e12] [cursor=pointer]:
+          - /url: /manage
+        - link "Present" [ref=e13] [cursor=pointer]:
+          - /url: /view
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Manage View · 01
+        - heading "The moments that matter." [level=1] [ref=e17]: The momentsthat matter.
+        - paragraph [ref=e18]: Una colección viva de instantes. Cada timer guarda un punto de partida y deja que el tiempo haga el resto.
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - paragraph [ref=e21]: Registrados
+          - paragraph [ref=e22]: "00"
+        - generic [ref=e23]:
+          - paragraph [ref=e24]: Counters
+          - paragraph [ref=e25]: "00"
+    - generic [ref=e26]:
+      - generic [ref=e27]:
+        - paragraph [ref=e28]: Your timeline
+        - paragraph [ref=e29]: Aún no hay momentos guardados.
+      - button "+ Nuevo timer" [active] [ref=e30]
+    - generic [ref=e31]:
+      - paragraph [ref=e33]: Observatory is quiet
+      - heading "Make the first moment count." [level=2] [ref=e34]
+      - paragraph [ref=e35]: Crea un counter para medir lo que ya empezó o un countdown para esperar lo que viene.
+      - button "Crear primer timer" [ref=e36]
+  - dialog [ref=e37]:
+    - heading "Crear nuevo timer" [level=2] [ref=e38]
+    - generic [ref=e39]:
+      - generic [ref=e40]:
+        - paragraph [ref=e41]: Nuevo registro
+        - heading "Capture a moment." [level=2] [ref=e42]
+        - paragraph [ref=e43]: Guarda el instante base. Chronoflow calcula el tiempo en vivo.
+      - generic [ref=e44]:
+        - generic [ref=e45]: Título
+        - textbox "Título" [ref=e46]:
+          - /placeholder: No tomar café
+      - generic [ref=e47]:
+        - generic [ref=e48]: Tipo
+        - combobox "Tipo" [ref=e49]:
+          - option "Counter · tiempo transcurrido" [selected]
+          - option "Countdown · tiempo restante"
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - generic [ref=e52]: Fecha
+          - textbox "Fecha" [ref=e53]: 2026-08-20
+        - generic [ref=e54]:
+          - generic [ref=e55]: Hora
+          - textbox "Hora" [ref=e56]: 13:19
+      - generic [ref=e57]:
+        - paragraph [ref=e58]: Zona horaria detectada
+        - paragraph [ref=e59]: America/Guatemala
+      - generic [ref=e60]:
+        - button "Crear timer" [ref=e61]
+        - button "Cancelar" [ref=e62]
