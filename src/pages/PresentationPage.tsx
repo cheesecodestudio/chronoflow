@@ -17,10 +17,10 @@ export function PresentationPage({ repository }: PresentationPageProps) {
   const { timers, isLoading, error } = useTimers(repository)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
-  const [isTransitioning, setIsTransitioning] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [areControlsVisible, setAreControlsVisible] = useState(true)
   const [now, setNow] = useState(() => Temporal.Now.instant())
+  const [transitionPhase, setTransitionPhase] = useState<'idle' | 'fade-out' | 'fade-in'>('idle')
   const transitionTimeout = useRef<number | null>(null)
   const controlsTimeout = useRef<number | null>(null)
   const presentationRef = useRef<HTMLElement>(null)
@@ -31,16 +31,24 @@ export function PresentationPage({ repository }: PresentationPageProps) {
         return
       }
 
-      setIsTransitioning(true)
-      setCurrentIndex((index) => (index + direction + timers.length) % timers.length)
+      // Fase 1: iniciar fade-out
+      setTransitionPhase('fade-out')
 
       if (transitionTimeout.current !== null) {
         window.clearTimeout(transitionTimeout.current)
       }
 
+      // Esperar FADE_DURATION_MS para que termine el fade-out
       transitionTimeout.current = window.setTimeout(() => {
-        setIsTransitioning(false)
-        transitionTimeout.current = null
+        // Fase 2: AHORA cambiar el timer (mientras está invisible)
+        setCurrentIndex((index) => (index + direction + timers.length) % timers.length)
+        setTransitionPhase('fade-in')
+
+        // Fase 3: fade-in
+        transitionTimeout.current = window.setTimeout(() => {
+          setTransitionPhase('idle')
+          transitionTimeout.current = null
+        }, FADE_DURATION_MS)
       }, FADE_DURATION_MS)
     },
     [timers.length],
@@ -160,7 +168,7 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       <div className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-cyan-400/10 blur-[120px]" />
       <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-amber-300/[0.07] blur-[120px]" />
 
-      <div className={`relative m-auto w-full max-w-6xl px-6 py-20 transition duration-[400ms] sm:px-12 ${isTransitioning ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
+      <div className={`relative m-auto w-full max-w-6xl px-6 py-20 transition duration-[400ms] sm:px-12 ${transitionPhase !== 'idle' ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
         <div className="flex items-center justify-between gap-4">
           <Link to="/manage" className="group inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-500 transition hover:text-white" aria-label="Salir a Manage View">
             <span className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-base transition group-hover:border-cyan-200/50 group-hover:text-cyan-100">←</span>
