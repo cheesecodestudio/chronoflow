@@ -168,16 +168,20 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       <div className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-cyan-400/10 blur-[120px]" />
       <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-amber-300/[0.07] blur-[120px]" />
 
-      <div className={`relative m-auto w-full max-w-6xl px-6 py-20 transition duration-[400ms] sm:px-12 ${transitionPhase !== 'idle' ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
-        <div className="flex items-center justify-between gap-4">
+      {/* Barra superior con misma visibilidad que controles inferiores */}
+      <div className={`fixed inset-x-0 top-0 z-10 p-5 transition duration-500 sm:p-8 ${areControlsVisible ? 'translate-y-0 opacity-100' : '-translate-y-5 opacity-0'}`}>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <Link to="/manage" className="group inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-500 transition hover:text-white" aria-label="Salir a Manage View">
             <span className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-base transition group-hover:border-cyan-200/50 group-hover:text-cyan-100">←</span>
             Manage View
           </Link>
           <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-slate-600">Chronoflow / live</p>
         </div>
+      </div>
 
-        <div className="mt-24 text-center sm:mt-28">
+      {/* Contenido principal - quitar el padding-top py-20 ya que la barra superior es fixed */}
+      <div className={`relative m-auto w-full max-w-6xl px-6 pt-28 pb-20 transition duration-[400ms] sm:px-12 ${transitionPhase !== 'idle' ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
+        <div className="mt-12 text-center sm:mt-16">
           <div className="flex items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.3em] text-cyan-300">
             <span className={`h-2 w-2 rounded-full ${currentTimer.type === 'counter' ? 'bg-cyan-300' : 'bg-amber-300'}`} />
             {currentTimer.type === 'counter' ? 'Counter' : 'Countdown'}
