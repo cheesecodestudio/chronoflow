@@ -8,6 +8,7 @@ import { PresentationPage } from './PresentationPage'
 import { SLIDE_DURATION_MS } from '../features/timers/presentation.constants'
 import {
   LocalStorageTimerRepository,
+  TIMER_STORAGE_KEY,
 } from '../infrastructure/storage/LocalStorageTimerRepository'
 
 class MemoryStorage implements Storage {
@@ -103,8 +104,35 @@ describe('PresentationPage', () => {
     renderPresentation(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW))
     await flushLoading()
 
-    expect(screen.getByText('The screen is ready.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ir a Manage View' })).toHaveAttribute('href', '/manage')
+    expect(screen.getByRole('heading', { name: 'No hay timers para mostrar.' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Volver a Manage' })).toHaveAttribute('href', '/manage')
+  })
+
+  it('shows retry and Manage navigation for invalid storage', async () => {
+    const storage = new MemoryStorage()
+    storage.setItem(TIMER_STORAGE_KEY, '{bad json')
+    renderPresentation(new LocalStorageTimerRepository(storage, () => NOW))
+    await flushLoading()
+
+    expect(screen.getByRole('heading', { name: 'No pudimos cargar la presentación.' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Volver a Manage' })).toHaveAttribute('href', '/manage')
+    expect(screen.queryByRole('heading', { name: 'No hay timers para mostrar.' })).not.toBeInTheDocument()
+  })
+
+  it('keeps a single timer stable without automatic transitions', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create(counter('Only timer', 0))
+    renderPresentation(repository)
+    await flushLoading()
+
+    expect(screen.getByRole('heading', { name: 'Only timer' })).toBeInTheDocument()
+
+    await act(async () => {
+      vi.advanceTimersByTime(SLIDE_DURATION_MS * 2)
+    })
+
+    expect(screen.getByRole('heading', { name: 'Only timer' })).toBeInTheDocument()
   })
 
   it('advances manually and loops from the last timer to the first', async () => {

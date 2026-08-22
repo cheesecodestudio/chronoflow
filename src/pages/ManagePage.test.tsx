@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { ManagePage } from './ManagePage'
 import {
   LocalStorageTimerRepository,
+  TIMER_STORAGE_KEY,
 } from '../infrastructure/storage/LocalStorageTimerRepository'
 
 class MemoryStorage implements Storage {
@@ -54,7 +55,7 @@ describe('ManagePage', () => {
   it('shows the empty state when there are no timers', async () => {
     renderManage(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW))
 
-    expect(await screen.findByText('Make the first moment count.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Aún no tienes timers.' })).toBeInTheDocument()
     expect(screen.getByText('Aún no hay momentos guardados.')).toBeInTheDocument()
   })
 
@@ -75,7 +76,7 @@ describe('ManagePage', () => {
     const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
     renderManage(repository)
 
-    await screen.findByText('Make the first moment count.')
+    await screen.findByText('Aún no tienes timers.')
     fireEvent.click(screen.getByRole('button', { name: 'Crear primer timer' }))
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Viaje' } })
     fireEvent.change(screen.getByLabelText('Tipo'), { target: { value: 'countdown' } })
@@ -86,6 +87,20 @@ describe('ManagePage', () => {
     expect(await screen.findByText('Viaje')).toBeInTheDocument()
     expect(screen.getByText('Countdown')).toBeInTheDocument()
     expect(screen.getByText('Tiempo restante')).toBeInTheDocument()
+  })
+
+  it('shows an actionable error instead of the empty state for invalid storage', async () => {
+    const storage = new MemoryStorage()
+    storage.setItem(TIMER_STORAGE_KEY, '{bad json')
+    renderManage(new LocalStorageTimerRepository(storage, () => NOW))
+
+    expect(await screen.findByRole('heading', { name: 'No pudimos cargar tus timers.' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Aún no tienes timers.' })).not.toBeInTheDocument()
+
+    storage.setItem(TIMER_STORAGE_KEY, JSON.stringify({ version: 1, timers: [] }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByRole('heading', { name: 'Aún no tienes timers.' })).toBeInTheDocument()
   })
 
   it('requires confirmation before deleting a timer', async () => {
@@ -148,6 +163,6 @@ describe('ManagePage', () => {
     const deleteModal = await screen.findByRole('alertdialog', { name: 'Eliminar timer' })
     fireEvent.click(within(deleteModal).getByRole('button', { name: 'Eliminar' }))
     await waitFor(() => expect(screen.queryByText('Daily reset')).not.toBeInTheDocument())
-    expect(screen.getByText('Make the first moment count.')).toBeInTheDocument()
+    expect(screen.getByText('Aún no tienes timers.')).toBeInTheDocument()
   })
 })
