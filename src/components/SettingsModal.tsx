@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 
 import { AppIcon } from './AppIcon'
-import { readPresentationSettings, writePresentationSettings, getSlideDurationErrorMessage, MIN_SLIDE_DURATION_MS, MAX_SLIDE_DURATION_MS, SLIDE_DURATION_STEP_MS } from '../features/timers/presentation.settings'
 import { useSettings } from '../features/timers/SettingsContext'
 
 interface SettingsModalProps {
@@ -21,8 +20,6 @@ const focusableSelector = [
 export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const [slideDuration, setSlideDuration] = useState<number>(() => readPresentationSettings().slideDurationMs)
-  const [slideDurationError, setSlideDurationError] = useState<string | null>(null)
   const { showSeconds, setShowSeconds } = useSettings()
 
   useEffect(() => {
@@ -133,47 +130,7 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
                   />
                 </button>
               </div>
-              <div className="space-y-2">
-                <label htmlFor="slide-duration" className="block font-mono text-[0.6rem] uppercase tracking-[0.2em] text-slate-400">
-                  Duración por slide (ms)
-                </label>
-                <div className="relative">
-                  <input
-                    id="slide-duration"
-                    type="number"
-                    min={MIN_SLIDE_DURATION_MS}
-                    max={MAX_SLIDE_DURATION_MS}
-                    step={SLIDE_DURATION_STEP_MS}
-                    value={slideDuration}
-                    onChange={(e) => {
-                      const value = Number(e.target.value)
-                      setSlideDuration(value)
-                      const error = getSlideDurationErrorMessage(value)
-                      setSlideDurationError(error)
-                    }}
-                    onBlur={() => {
-                      const error = getSlideDurationErrorMessage(slideDuration)
-                      if (error) {
-                        setSlideDurationError(error)
-                      } else {
-                        setSlideDurationError(null)
-                        writePresentationSettings({ slideDurationMs: slideDuration })
-                      }
-                    }}
-                    className="w-full rounded-lg border border-white/10 bg-black/20 px-4 py-3 font-mono text-sm text-white placeholder:text-slate-500 focus:border-cyan-300 focus:outline-none focus:ring-1 focus:ring-cyan-300"
-                    aria-describedby={slideDurationError ? 'slide-duration-error' : undefined}
-                    aria-invalid={slideDurationError ? 'true' : 'false'}
-                  />
-                  {slideDurationError && (
-                    <p id="slide-duration-error" className="mt-1.5 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-red-400" role="alert" aria-live="polite">
-                      {slideDurationError}
-                    </p>
-                  )}
-                </div>
-                <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-slate-500">
-                  Mínimo {MIN_SLIDE_DURATION_MS}ms, máximo {MAX_SLIDE_DURATION_MS}ms, incrementos de {SLIDE_DURATION_STEP_MS}ms
-                </p>
-              </div>
+              <PlaceholderCard ticket="MVP-114" title="Duración configurable de slides" />
             </div>
           </section>
 
