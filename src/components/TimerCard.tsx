@@ -5,6 +5,7 @@ import {
   calculateElapsed,
   calculateRemaining,
   formatDurationManage,
+  formatDurationManageParts,
   isCountdownCompleted,
 } from '../features/timers/timer.utils'
 
@@ -23,6 +24,11 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
     : completed
       ? 'Llegó el momento'
       : formatDurationManage(calculateRemaining(timer, now))
+  const durationParts = isCounter
+    ? formatDurationManageParts(calculateElapsed(timer, now))
+    : completed
+      ? []
+      : formatDurationManageParts(calculateRemaining(timer, now))
 
   return (
     <article className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#101e2c]/90 p-6 shadow-xl shadow-[#020a12]/25 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:shadow-cyan-950/30">
@@ -46,9 +52,23 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
         <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-slate-500">
           {isCounter ? 'Tiempo transcurrido' : completed ? 'Estado' : 'Tiempo restante'}
         </p>
-        <p className={`mt-2 text-lg tracking-tight font-mono ${completed ? 'text-amber-200' : 'text-cyan-100'}`}>
-          {duration}
-        </p>
+        {completed ? (
+          <p className="mt-2 text-lg tracking-tight font-mono text-amber-200">
+            {duration}
+          </p>
+        ) : (
+          <p className="mt-2 text-lg tracking-tight font-mono flex flex-wrap items-center gap-x-3 gap-y-1">
+            {durationParts
+              .filter((part) => part.visible)
+              .map((part, index) => (
+                <span key={part.label} className="flex items-center gap-1">
+                  {index > 0 && <span className="px-1 text-slate-500">:</span>}
+                  <span className="text-cyan-100 tabular-nums">{part.value}</span>
+                  <span className="text-[0.7rem] uppercase tracking-[0.1em] text-slate-400">{part.label}</span>
+                </span>
+              ))}
+          </p>
+        )}
         <p className="mt-3 text-xs text-slate-500">{timer.timeZone}</p>
       </div>
 

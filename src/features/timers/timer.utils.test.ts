@@ -6,6 +6,7 @@ import {
   calculateRemaining,
   formatDuration,
   formatDurationManage,
+  formatDurationManageParts,
   formatDurationPresent,
   isCountdownCompleted,
   localDateTimeToInstant,
@@ -238,6 +239,55 @@ describe('formatDurationManage', () => {
   it('handles single unit values', () => {
     const duration = Temporal.Duration.from({ years: 1, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 })
     expect(formatDurationManage(duration)).toBe('1A:0MIN:0SEG')
+  })
+})
+
+describe('formatDurationManageParts', () => {
+  it('returns all units with correct visibility when all have values', () => {
+    const duration = Temporal.Duration.from({ years: 1, months: 2, days: 3, hours: 4, minutes: 5, seconds: 6 })
+    const result = formatDurationManageParts(duration)
+
+    expect(result).toHaveLength(6)
+    expect(result[0]).toEqual({ value: 1, label: 'A', visible: true })
+    expect(result[1]).toEqual({ value: 2, label: 'M', visible: true })
+    expect(result[2]).toEqual({ value: 3, label: 'D', visible: true })
+    expect(result[3]).toEqual({ value: 4, label: 'H', visible: true })
+    expect(result[4]).toEqual({ value: 5, label: 'MIN', visible: true })
+    expect(result[5]).toEqual({ value: 6, label: 'SEG', visible: true })
+  })
+
+  it('hides years, months, days, hours when zero', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 0, minutes: 5, seconds: 6 })
+    const result = formatDurationManageParts(duration)
+
+    expect(result[0].visible).toBe(false)
+    expect(result[1].visible).toBe(false)
+    expect(result[2].visible).toBe(false)
+    expect(result[3].visible).toBe(false)
+    expect(result[4].visible).toBe(true)
+    expect(result[5].visible).toBe(true)
+  })
+
+  it('always shows minutes and seconds as visible', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 })
+    const result = formatDurationManageParts(duration)
+
+    expect(result[4].visible).toBe(true)
+    expect(result[5].visible).toBe(true)
+    expect(result[4].value).toBe(0)
+    expect(result[5].value).toBe(0)
+  })
+
+  it('shows partial units correctly', () => {
+    const duration = Temporal.Duration.from({ years: 1, months: 0, days: 3, hours: 0, minutes: 5, seconds: 0 })
+    const result = formatDurationManageParts(duration)
+
+    expect(result[0]).toEqual({ value: 1, label: 'A', visible: true })
+    expect(result[1]).toEqual({ value: 0, label: 'M', visible: false })
+    expect(result[2]).toEqual({ value: 3, label: 'D', visible: true })
+    expect(result[3]).toEqual({ value: 0, label: 'H', visible: false })
+    expect(result[4]).toEqual({ value: 5, label: 'MIN', visible: true })
+    expect(result[5]).toEqual({ value: 0, label: 'SEG', visible: true })
   })
 })
 
