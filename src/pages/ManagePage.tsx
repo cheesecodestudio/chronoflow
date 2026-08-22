@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Temporal } from 'temporal-polyfill'
 
+import { AppIcon } from '../components/AppIcon'
 import { TimerCard } from '../components/TimerCard'
 import { TimerForm } from '../components/TimerForm'
 import type { Timer, TimerDraft } from '../features/timers/timer.types'
@@ -125,7 +126,8 @@ export function ManagePage({ repository }: ManagePageProps) {
             onClick={() => { setActionError(null); setIsFormOpen(true) }}
             className="min-h-12 rounded-full bg-cyan-200 px-6 text-sm font-bold uppercase tracking-wider text-[#07111f] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-white"
           >
-            + Nuevo timer
+            <AppIcon name="plus" className="size-3" />
+            Nuevo timer
           </button>
         </section>
 
@@ -190,7 +192,7 @@ export function ManagePage({ repository }: ManagePageProps) {
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-[#020a12]/90 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteConfirm({ timer: null, open: false }) }}>
           <section className="w-full max-w-md rounded-[2rem] border border-red-300/30 bg-[#1a0b0d] p-6 shadow-2xl shadow-red-950/30" role="alertdialog" aria-modal="true" aria-labelledby="delete-title">
             <div className="flex items-center gap-3 mb-4">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-red-300/20 text-red-200 font-mono text-lg">✕</span>
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-red-300/20 text-red-200 font-mono text-lg"><AppIcon name="xmark" className="size-4" /></span>
               <h2 id="delete-title" className="font-serif text-xl text-white">Eliminar timer</h2>
             </div>
             <p className="text-sm text-slate-300 mb-6">¿Eliminar <span className="font-medium text-white">"{deleteConfirm.timer?.title}"</span>? Esta acción no se puede deshacer.</p>
@@ -219,7 +221,7 @@ export function ManagePage({ repository }: ManagePageProps) {
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-[#020a12]/90 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRestartConfirm({ timer: null, open: false }) }}>
           <section className="w-full max-w-md rounded-[2rem] border border-cyan-300/30 bg-[#0a1420] p-6 shadow-2xl shadow-cyan-950/30" role="alertdialog" aria-modal="true" aria-labelledby="restart-title">
             <div className="flex items-center gap-3 mb-4">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-cyan-300/20 text-cyan-200 font-mono text-lg">↻</span>
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-cyan-300/20 text-cyan-200 font-mono text-lg"><AppIcon name="rotateRight" className="size-4" /></span>
               <h2 id="restart-title" className="font-serif text-xl text-white">Reiniciar counter</h2>
             </div>
             <p className="text-sm text-slate-300 mb-6">¿Reiniciar <span className="font-medium text-white">"{restartConfirm.timer?.title}"</span> ahora? El tiempo volverá a cero.</p>
