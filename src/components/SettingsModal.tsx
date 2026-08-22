@@ -1,5 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 
+import { AppIcon } from './AppIcon'
+
 interface SettingsModalProps {
   onClose: () => void
   returnFocusRef: RefObject<HTMLElement | null>
@@ -89,7 +91,7 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
             onClick={close}
             className="grid size-10 shrink-0 place-items-center rounded-full border border-white/10 text-xl text-slate-400 transition hover:border-white/30 hover:text-white focus-visible:outline-2 focus-visible:outline-cyan-200 focus-visible:outline-offset-2"
           >
-            <span aria-hidden="true">×</span>
+            <AppIcon name="xmark" className="size-4" />
           </button>
         </header>
 

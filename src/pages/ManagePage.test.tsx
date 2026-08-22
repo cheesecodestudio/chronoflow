@@ -99,7 +99,7 @@ describe('ManagePage', () => {
     const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
     renderManage(repository)
 
-    fireEvent.click(screen.getByRole('button', { name: '+ Nuevo timer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo timer' }))
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'No tomar café' } })
     fireEvent.click(screen.getByRole('button', { name: 'Crear timer' }))
 
