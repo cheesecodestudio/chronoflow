@@ -1,5 +1,5 @@
 import { Temporal } from 'temporal-polyfill'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 
@@ -101,12 +101,15 @@ describe('ManagePage', () => {
       createdAt: NOW.toString(),
       updatedAt: NOW.toString(),
     })
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     renderManage(repository)
 
     expect(await screen.findByText('Temporary')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }))
-    expect(confirm).toHaveBeenCalledWith('¿Eliminar "Temporary"?')
+    // Modal should open
+    expect(await screen.findByRole('alertdialog', { name: 'Eliminar timer' })).toBeInTheDocument()
+    expect(screen.getByText('Temporary')).toBeInTheDocument()
+    // Click cancel
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(screen.getByText('Temporary')).toBeInTheDocument()
   })
 
@@ -123,11 +126,15 @@ describe('ManagePage', () => {
       createdAt: NOW.toString(),
       updatedAt: NOW.toString(),
     })
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     renderManage(repository)
 
     expect(await screen.findByText('Daily reset')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reiniciar' }))
+    // Modal should open
+    expect(await screen.findByRole('alertdialog', { name: 'Reiniciar counter' })).toBeInTheDocument()
+    // Click confirm in modal - target the button inside the alertdialog
+    const modal = await screen.findByRole('alertdialog', { name: 'Reiniciar counter' })
+    fireEvent.click(within(modal).getByRole('button', { name: 'Reiniciar' }))
     await waitFor(async () => {
       const restarted = await repository.getById('counter')
       expect(restarted?.type).toBe('counter')
@@ -137,6 +144,9 @@ describe('ManagePage', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }))
+    expect(await screen.findByRole('alertdialog', { name: 'Eliminar timer' })).toBeInTheDocument()
+    const deleteModal = await screen.findByRole('alertdialog', { name: 'Eliminar timer' })
+    fireEvent.click(within(deleteModal).getByRole('button', { name: 'Eliminar' }))
     await waitFor(() => expect(screen.queryByText('Daily reset')).not.toBeInTheDocument())
     expect(screen.getByText('Make the first moment count.')).toBeInTheDocument()
   })
