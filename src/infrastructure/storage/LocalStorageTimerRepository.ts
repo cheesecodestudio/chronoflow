@@ -1,10 +1,11 @@
 import { Temporal } from 'temporal-polyfill'
 
-import type { Timer } from '../../features/timers/timer.types'
+import type { Timer, TimerColor, TimerIcon } from '../../features/timers/timer.types'
 import type { TimerRepository } from '../../features/timers/timer.repository'
+import { isValidTimerColor, isValidTimerIcon, normalizeTimerColor, normalizeTimerIcon } from '../../features/timers/timer.customization'
 
-export const TIMER_STORAGE_KEY = 'chronoflow:timers:v1'
-export const TIMER_STORAGE_VERSION = 1
+export const TIMER_STORAGE_KEY = 'chronoflow:timers:v2'
+export const TIMER_STORAGE_VERSION = 2
 
 interface TimerStorageEnvelope {
   version: typeof TIMER_STORAGE_VERSION
@@ -72,6 +73,26 @@ export class LocalStorageTimerRepository implements TimerRepository {
     return restartedTimer
   }
 
+  async updateCustomization(id: string, color: TimerColor, icon: TimerIcon): Promise<Timer> {
+    const timer = await this.getById(id)
+
+    if (!timer) {
+      throw new Error(`No existe un timer con el id ${id}.`)
+    }
+
+    const timestamp = this.now().toString()
+    const updatedTimer: Timer = {
+      ...timer,
+      color,
+      icon,
+      updatedAt: timestamp,
+    }
+
+    await this.delete(id)
+    this.writeTimers([...(await this.getAll()), updatedTimer])
+    return updatedTimer
+  }
+
   private readTimers(): Timer[] {
     const raw = this.storage.getItem(TIMER_STORAGE_KEY)
 
@@ -83,16 +104,14 @@ export class LocalStorageTimerRepository implements TimerRepository {
       const parsed: unknown = JSON.parse(raw)
 
       if (!isStorageEnvelope(parsed)) {
-        throw new InvalidTimerStorageError()
+        return []
       }
 
-      return parsed.timers.filter(isTimer)
-    } catch (error) {
-      if (error instanceof InvalidTimerStorageError) {
-        throw error
-      }
-
-      throw new InvalidTimerStorageError()
+      return parsed.timers
+        .map(migrateTimer)
+        .filter(isTimer)
+    } catch {
+      return []
     }
   }
 
@@ -103,13 +122,6 @@ export class LocalStorageTimerRepository implements TimerRepository {
     }
 
     this.storage.setItem(TIMER_STORAGE_KEY, JSON.stringify(envelope))
-  }
-}
-
-export class InvalidTimerStorageError extends Error {
-  constructor() {
-    super('El almacenamiento de timers no es válido.')
-    this.name = 'InvalidTimerStorageError'
   }
 }
 
@@ -128,6 +140,71 @@ function isStorageEnvelope(value: unknown): value is TimerStorageEnvelope {
 
   const candidate = value as Record<string, unknown>
   return candidate.version === TIMER_STORAGE_VERSION && Array.isArray(candidate.timers)
+}
+
+function migrateTimer(value: unknown): Timer | null {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  const candidate = value as Record<string, unknown>
+
+  if (
+    typeof candidate.id !== 'string' ||
+    typeof candidate.title !== 'string' ||
+    typeof candidate.timeZone !== 'string' ||
+    typeof candidate.position !== 'number' ||
+    !Number.isFinite(candidate.position) ||
+    typeof candidate.createdAt !== 'string' ||
+    typeof candidate.updatedAt !== 'string'
+  ) {
+    return null
+  }
+
+  if (!isInstant(candidate.createdAt) || !isInstant(candidate.updatedAt) || !isTimeZone(candidate.timeZone)) {
+    return null
+  }
+
+  const color = normalizeTimerColor(candidate.color)
+  const icon = normalizeTimerIcon(candidate.icon)
+
+  if (candidate.type === 'counter') {
+    if (typeof candidate.startAt !== 'string' || !isInstant(candidate.startAt)) {
+      return null
+    }
+    return {
+      id: candidate.id,
+      title: candidate.title,
+      timeZone: candidate.timeZone,
+      position: candidate.position,
+      createdAt: candidate.createdAt,
+      updatedAt: candidate.updatedAt,
+      type: 'counter',
+      startAt: candidate.startAt,
+      color,
+      icon,
+    }
+  }
+
+  if (candidate.type === 'countdown') {
+    if (typeof candidate.targetAt !== 'string' || !isInstant(candidate.targetAt)) {
+      return null
+    }
+    return {
+      id: candidate.id,
+      title: candidate.title,
+      timeZone: candidate.timeZone,
+      position: candidate.position,
+      createdAt: candidate.createdAt,
+      updatedAt: candidate.updatedAt,
+      type: 'countdown',
+      targetAt: candidate.targetAt,
+      color,
+      icon,
+    }
+  }
+
+  return null
 }
 
 function isTimer(value: unknown): value is Timer {
@@ -150,6 +227,14 @@ function isTimer(value: unknown): value is Timer {
   }
 
   if (!isInstant(candidate.createdAt) || !isInstant(candidate.updatedAt) || !isTimeZone(candidate.timeZone)) {
+    return false
+  }
+
+  // color e icon son opcionales; si vienen, deben ser válidos
+  if (candidate.color !== undefined && !isValidTimerColor(candidate.color)) {
+    return false
+  }
+  if (candidate.icon !== undefined && !isValidTimerIcon(candidate.icon)) {
     return false
   }
 
@@ -185,5 +270,12 @@ function isTimeZone(value: string): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+export class InvalidTimerStorageError extends Error {
+  constructor() {
+    super('El almacenamiento de timers no es válido.')
+    this.name = 'InvalidTimerStorageError'
   }
 }

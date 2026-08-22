@@ -1,7 +1,7 @@
 import { Temporal } from 'temporal-polyfill'
 
 import { AppIcon } from './AppIcon'
-import type { Timer } from '../features/timers/timer.types'
+import type { Timer, TimerColor, TimerIcon } from '../features/timers/timer.types'
 import {
   calculateElapsed,
   calculateRemaining,
@@ -9,27 +9,57 @@ import {
   formatDurationManageParts,
   isCountdownCompleted,
 } from '../features/timers/timer.utils'
+import { useSettings } from '../features/timers/SettingsContext'
+import { getTimerColorHex, getTimerIconName } from '../features/timers/timer.customization'
 
 interface TimerCardProps {
   timer: Timer
   now: Temporal.Instant
   onDelete: (timer: Timer) => void
   onRestart: (timer: Timer) => void
+  onCustomize: (timer: Timer) => void
 }
 
-export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
+function CustomizationBadge({ color, icon }: { color: TimerColor; icon: TimerIcon }) {
+  const hasCustomization = color !== 'neutral' || icon !== 'none'
+  if (!hasCustomization) return null
+
+  const hex = getTimerColorHex(color, false)
+  const iconName = getTimerIconName(icon)
+
+  return (
+    <span className="flex items-center gap-1.5" aria-label={`Personalización: color ${color}${icon !== 'none' ? `, icono ${icon}` : ''}`}>
+      <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: hex }} aria-hidden="true" />
+      {icon !== 'none' && <AppIcon name={iconName!} className="size-4 shrink-0" style={{ color: hex }} aria-hidden="true" />}
+    </span>
+  )
+}
+
+export function TimerCard({ timer, now, onDelete, onRestart, onCustomize }: TimerCardProps) {
+  const { showSeconds } = useSettings()
   const isCounter = timer.type === 'counter'
   const completed = !isCounter && isCountdownCompleted(timer, now)
+
+  const counterTimer = timer as Extract<Timer, { type: 'counter' }>
+  const countdownTimer = timer as Extract<Timer, { type: 'countdown' }>
+
   const duration = isCounter
-    ? formatDurationManage(calculateElapsed(timer, now))
+    ? formatDurationManage(calculateElapsed(counterTimer, now))
     : completed
       ? 'Llegó el momento'
-      : formatDurationManage(calculateRemaining(timer, now))
+      : formatDurationManage(calculateRemaining(countdownTimer, now))
+
+  const elapsed = calculateElapsed(counterTimer, now)
+  const remaining = calculateRemaining(countdownTimer, now)
+
   const durationParts = isCounter
-    ? formatDurationManageParts(calculateElapsed(timer, now))
+    ? formatDurationManageParts(elapsed, showSeconds)
     : completed
       ? []
-      : formatDurationManageParts(calculateRemaining(timer, now))
+      : formatDurationManageParts(remaining, showSeconds)
+
+  const color = timer.color ?? 'neutral'
+  const icon = timer.icon ?? 'none'
 
   return (
     <article className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#101e2c]/90 p-6 shadow-xl shadow-[#020a12]/25 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:shadow-cyan-950/30">
@@ -39,6 +69,7 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
           <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-400">
             <span className={`h-2 w-2 rounded-full ${isCounter ? 'bg-cyan-300' : 'bg-amber-300'}`} />
             {isCounter ? 'Counter' : 'Countdown'}
+            <CustomizationBadge color={color} icon={icon} />
           </div>
           <h2 className="mt-4 max-w-[18rem] break-words font-serif text-2xl leading-tight text-white">
             {timer.title}
@@ -84,6 +115,14 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
             Reiniciar
           </button>
         ) : null}
+        <button
+          type="button"
+          className="min-h-10 rounded-full border border-white/10 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400 transition hover:border-amber-300/30 hover:text-amber-200 focus-visible:outline-2 focus-visible:outline-amber-200"
+          onClick={() => onCustomize(timer)}
+        >
+          <AppIcon name="gear" className="size-3" />
+          Personalizar
+        </button>
         <button
           type="button"
           className="min-h-10 rounded-full border border-white/10 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400 transition hover:border-red-300/30 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-red-200"

@@ -5,6 +5,7 @@ import { Temporal } from 'temporal-polyfill'
 import { AppIcon } from '../components/AppIcon'
 import { TimerCard } from '../components/TimerCard'
 import { TimerForm } from '../components/TimerForm'
+import { CustomizeTimerModal } from '../components/CustomizeTimerModal'
 import type { Timer, TimerDraft } from '../features/timers/timer.types'
 import type { TimerRepository } from '../features/timers/timer.repository'
 import { useTimers } from '../features/timers/useTimers'
@@ -16,13 +17,14 @@ interface ManagePageProps {
 }
 
 export function ManagePage({ repository }: ManagePageProps) {
-  const { timers, isLoading, error, create, remove, restart, reload } = useTimers(repository)
+  const { timers, isLoading, error, create, remove, restart, reload, updateCustomization: _updateCustomization } = useTimers(repository)
   const [now, setNow] = useState(() => Temporal.Now.instant())
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ timer: Timer | null; open: boolean }>({ timer: null, open: false })
   const [restartConfirm, setRestartConfirm] = useState<{ timer: Timer | null; open: boolean }>({ timer: null, open: false })
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [customizeTimer, setCustomizeTimer] = useState<Timer | null>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -63,6 +65,15 @@ export function ManagePage({ repository }: ManagePageProps) {
     } catch {
       setActionError('No se pudo reiniciar el timer.')
     }
+  }
+
+  function handleCustomize(timer: Timer) {
+    setActionError(null)
+    setCustomizeTimer(timer)
+  }
+
+  function closeCustomize() {
+    setCustomizeTimer(null)
   }
 
   const counters = timers.filter((timer) => timer.type === 'counter').length
@@ -170,7 +181,14 @@ export function ManagePage({ repository }: ManagePageProps) {
         ) : (
           <section className="grid gap-5 py-10 md:grid-cols-2 xl:grid-cols-3" aria-label="Timers guardados">
             {timers.map((timer) => (
-              <TimerCard key={timer.id} timer={timer} now={now} onDelete={handleDelete} onRestart={handleRestart} />
+              <TimerCard
+                key={timer.id}
+                timer={timer}
+                now={now}
+                onDelete={handleDelete}
+                onRestart={handleRestart}
+                onCustomize={handleCustomize}
+              />
             ))}
           </section>
         )}
@@ -186,6 +204,10 @@ export function ManagePage({ repository }: ManagePageProps) {
       ) : null}
 
       {isSettingsOpen ? <SettingsModal onClose={closeSettings} returnFocusRef={settingsTriggerRef} /> : null}
+
+      {customizeTimer ? (
+        <CustomizeTimerModal timer={customizeTimer} onClose={closeCustomize} returnFocusRef={settingsTriggerRef} />
+      ) : null}
 
       {/* Modal confirmar eliminación - estilo danger/rojo */}
       {deleteConfirm.open && (

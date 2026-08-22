@@ -1,6 +1,6 @@
 import { Temporal } from 'temporal-polyfill'
 
-import type { Timer, TimerDraft, TimerValidationError } from './timer.types'
+import type { Timer, TimerDraft, TimerValidationError, TimerColor, TimerIcon } from './timer.types'
 import { normalizeTitle, validateTimerDraft } from './timer.utils'
 import type { TimerRepository } from './timer.repository'
 
@@ -44,10 +44,19 @@ export async function createTimer(
 
   const timer: Timer =
     draft.type === 'counter'
-      ? { ...base, type: 'counter', startAt: draft.startAt }
-      : { ...base, type: 'countdown', targetAt: draft.targetAt }
+      ? { ...base, type: 'counter', startAt: draft.startAt, color: draft.color, icon: draft.icon }
+      : { ...base, type: 'countdown', targetAt: draft.targetAt, color: draft.color, icon: draft.icon }
 
   return repository.create(timer)
+}
+
+export async function updateTimerCustomization(
+  repository: TimerRepository,
+  id: string,
+  color: TimerColor,
+  icon: TimerIcon,
+): Promise<Timer> {
+  return repository.updateCustomization(id, color, icon)
 }
 
 export function nextPosition(timers: Timer[]): number {

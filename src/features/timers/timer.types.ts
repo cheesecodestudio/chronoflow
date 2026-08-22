@@ -1,5 +1,9 @@
 export type TimerType = 'counter' | 'countdown'
 
+import type { TimerColor, TimerIcon } from './timer.customization'
+
+export type { TimerColor, TimerIcon }
+
 export interface TimerBase {
   id: string
   title: string
@@ -7,6 +11,8 @@ export interface TimerBase {
   position: number
   createdAt: string
   updatedAt: string
+  color?: TimerColor
+  icon?: TimerIcon
 }
 
 export interface CounterTimer extends TimerBase {
@@ -27,12 +33,16 @@ export type TimerDraft =
       title: string
       timeZone: string
       startAt: string
+      color?: TimerColor
+      icon?: TimerIcon
     }
   | {
       type: 'countdown'
       title: string
       timeZone: string
       targetAt: string
+      color?: TimerColor
+      icon?: TimerIcon
     }
 
 export interface DurationParts {

@@ -8,6 +8,8 @@ import type { TimerRepository } from '../features/timers/timer.repository'
 import { calculateElapsed, calculateRemaining, formatDurationPresent, isCountdownCompleted, type DurationPresentBlock } from '../features/timers/timer.utils'
 import { FADE_DURATION_MS, SLIDE_DURATION_MS } from '../features/timers/presentation.constants'
 import { useTimers } from '../features/timers/useTimers'
+import { useSettings } from '../features/timers/SettingsContext'
+import { getTimerColorHex, getTimerIconName } from '../features/timers/timer.customization'
 
 interface PresentationPageProps {
   repository?: TimerRepository
@@ -16,6 +18,7 @@ interface PresentationPageProps {
 export function PresentationPage({ repository }: PresentationPageProps) {
   const navigate = useNavigate()
   const { timers, isLoading, error, reload } = useTimers(repository)
+  const { showSeconds } = useSettings()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -146,6 +149,13 @@ export function PresentationPage({ repository }: PresentationPageProps) {
 
   const currentTimer = timers.length > 0 ? timers[currentIndex % timers.length] : null
 
+  // Customization values for current timer
+  const timerColor = currentTimer?.color ?? 'neutral'
+  const timerIcon = currentTimer?.icon ?? 'none'
+  const accentColor = getTimerColorHex(timerColor, true) // dark mode for presentation
+  const iconName = getTimerIconName(timerIcon)
+  const hasCustomization = timerColor !== 'neutral' || timerIcon !== 'none'
+
   if (isLoading) {
     return <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] text-sm text-slate-500 sm:h-dvh sm:min-h-0 sm:overflow-hidden" role="status">Cargando presentación...</main>
   }
@@ -184,6 +194,12 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       onPointerDown={revealControls}
       onFocusCapture={revealControls}
     >
+      {hasCustomization && (
+        <>
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: accentColor }} />
+          <div className="pointer-events-none absolute inset-0" style={{ backgroundColor: accentColor, opacity: 0.08 }} />
+        </>
+      )}
       <div className="pointer-events-none absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(148,163,184,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.04)_1px,transparent_1px)] [background-size:64px_64px]" />
       <div className="pointer-events-none absolute -left-32 h-96 w-96 rounded-full bg-cyan-400/10 blur-[120px]" />
       <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-amber-300/[0.07] blur-[120px]" />
@@ -203,13 +219,16 @@ export function PresentationPage({ repository }: PresentationPageProps) {
           <div className="flex items-center justify-center gap-2 font-mono text-[0.6rem] uppercase tracking-[0.22em] text-cyan-300 sm:gap-3 sm:text-xs sm:tracking-[0.3em]">
             <span className={`h-2 w-2 rounded-full ${currentTimer.type === 'counter' ? 'bg-cyan-300' : 'bg-amber-300'}`} />
             {currentTimer.type === 'counter' ? 'Counter' : 'Countdown'}
+            {hasCustomization && iconName && (
+              <AppIcon name={iconName} className="size-8 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
+            )}
           </div>
           <h1 className={`mx-auto mt-2 max-w-5xl break-words font-serif leading-[0.92] tracking-tight text-white sm:mt-4 lg:mt-5 ${getPresentationTitleSize(currentTimer.title)}`}>
             {currentTimer.title}
           </h1>
           <p className="mt-2 font-mono text-[0.55rem] uppercase tracking-[0.14em] text-slate-500 sm:mt-4 sm:text-[0.65rem] sm:tracking-[0.2em] lg:mt-5">{currentTimer.timeZone}</p>
 
-          <PresentationDuration timer={currentTimer} now={now} />
+          <PresentationDuration timer={currentTimer} now={now} showSeconds={showSeconds} />
         </div>
       </div>
 
@@ -251,13 +270,15 @@ function getPresentationTitleSize(title: string): string {
   return 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl 2xl:text-9xl'
 }
 
-function PresentationDuration({ timer, now }: { timer: Timer; now: Temporal.Instant }) {
+function PresentationDuration({ timer, now, showSeconds }: { timer: Timer; now: Temporal.Instant; showSeconds: boolean }) {
   const completed = timer.type === 'countdown' && isCountdownCompleted(timer, now)
+  const counterTimer = timer as Extract<Timer, { type: 'counter' }>
+  const countdownTimer = timer as Extract<Timer, { type: 'countdown' }>
   const durationData = timer.type === 'counter'
-    ? formatDurationPresent(calculateElapsed(timer, now))
+    ? formatDurationPresent(calculateElapsed(counterTimer, now), showSeconds)
     : completed
       ? null
-      : formatDurationPresent(calculateRemaining(timer, now))
+      : formatDurationPresent(calculateRemaining(countdownTimer, now), showSeconds)
 
   if (completed) {
     return (

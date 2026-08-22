@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 
-import type { Timer, TimerDraft } from './timer.types'
+import type { Timer, TimerDraft, TimerColor, TimerIcon } from './timer.types'
 import type { TimerRepository } from './timer.repository'
 import { LocalStorageTimerRepository } from '../../infrastructure/storage/LocalStorageTimerRepository'
-import { createTimer } from './timer.use-cases'
+import { createTimer, updateTimerCustomization } from './timer.use-cases'
 
 const browserRepository = new LocalStorageTimerRepository()
 
@@ -67,5 +67,10 @@ export function useTimers(repository: TimerRepository = browserRepository) {
     await reload()
   }
 
-  return { timers, isLoading, error, create, remove, restart, reload }
+  async function updateCustomization(id: string, color: TimerColor, icon: TimerIcon) {
+    await updateTimerCustomization(repository, id, color, icon)
+    await reload()
+  }
+
+  return { timers, isLoading, error, create, remove, restart, reload, updateCustomization }
 }

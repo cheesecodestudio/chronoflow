@@ -5,7 +5,7 @@ import {
   LocalStorageTimerRepository,
   TIMER_STORAGE_KEY,
 } from '../../infrastructure/storage/LocalStorageTimerRepository'
-import type { Timer } from './timer.types'
+import type { Timer, TimerColor, TimerIcon } from './timer.types'
 import { createTimer, TimerValidationException } from './timer.use-cases'
 
 class MemoryStorage implements Storage {
@@ -38,7 +38,7 @@ class MemoryStorage implements Storage {
 
 const NOW = Temporal.Instant.from('2024-01-01T00:00:00Z')
 
-function counter(id: string, position: number): Timer {
+function counter(id: string, position: number, overrides: Partial<Timer> = {}): Timer {
   return {
     id,
     title: id,
@@ -48,10 +48,13 @@ function counter(id: string, position: number): Timer {
     position,
     createdAt: '2023-12-31T00:00:00Z',
     updatedAt: '2023-12-31T00:00:00Z',
-  }
+    color: 'neutral' as TimerColor,
+    icon: 'none' as TimerIcon,
+    ...overrides,
+  } as Timer
 }
 
-function countdown(id: string, position: number): Timer {
+function countdown(id: string, position: number, overrides: Partial<Timer> = {}): Timer {
   return {
     id,
     title: id,
@@ -61,7 +64,10 @@ function countdown(id: string, position: number): Timer {
     position,
     createdAt: '2023-12-31T00:00:00Z',
     updatedAt: '2023-12-31T00:00:00Z',
-  }
+    color: 'neutral' as TimerColor,
+    icon: 'none' as TimerIcon,
+    ...overrides,
+  } as Timer
 }
 
 describe('LocalStorageTimerRepository', () => {
@@ -74,7 +80,7 @@ describe('LocalStorageTimerRepository', () => {
 
     expect((await repository.getAll()).map((timer) => timer.id)).toEqual(['first', 'second'])
     expect(JSON.parse(storage.getItem(TIMER_STORAGE_KEY) ?? '')).toEqual({
-      version: 1,
+      version: 2,
       timers: expect.any(Array),
     })
 
@@ -124,10 +130,10 @@ describe('LocalStorageTimerRepository', () => {
     expect(await repository.getAll()).toEqual([])
 
     storage.setItem(TIMER_STORAGE_KEY, '{bad json')
-    await expect(repository.getAll()).rejects.toThrow('El almacenamiento de timers no es válido.')
+    await expect(repository.getAll()).resolves.toEqual([])
 
-    storage.setItem(TIMER_STORAGE_KEY, JSON.stringify({ version: 2, timers: [counter('old', 0)] }))
-    await expect(repository.getAll()).rejects.toThrow('El almacenamiento de timers no es válido.')
+    storage.setItem(TIMER_STORAGE_KEY, JSON.stringify({ version: 1, timers: [counter('old', 0)] }))
+    await expect(repository.getAll()).resolves.toEqual([counter('old', 0)])
   })
 
   it('keeps valid timers when individual storage records are invalid', async () => {
@@ -165,6 +171,8 @@ describe('LocalStorageTimerRepository', () => {
       position: 0,
       createdAt: NOW.toString(),
       updatedAt: NOW.toString(),
+      color: 'neutral',
+      icon: 'none',
     })
   })
 

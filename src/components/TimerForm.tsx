@@ -1,9 +1,19 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Temporal } from 'temporal-polyfill'
 
-import type { TimerDraft, TimerType } from '../features/timers/timer.types'
+import type { TimerDraft, TimerType, TimerColor, TimerIcon } from '../features/timers/timer.types'
 import { detectTimeZone, localDateTimeToInstant } from '../features/timers/timer.utils'
 import { TimerValidationException } from '../features/timers/timer.use-cases'
+import {
+  TIMER_COLORS_ORDERED,
+  TIMER_ICONS_ORDERED,
+  DEFAULT_TIMER_COLOR,
+  DEFAULT_TIMER_ICON,
+  TIMER_COLOR_LABELS,
+  TIMER_ICON_LABELS,
+  getTimerColorHex,
+  getTimerIconName,
+} from '../features/timers/timer.customization'
 
 interface TimerFormProps {
   onSubmit: (draft: TimerDraft) => Promise<void>
@@ -16,6 +26,8 @@ interface FormState {
   date: string
   time: string
   timeZone: string
+  color: TimerColor
+  icon: TimerIcon
 }
 
 function getInitialState(): FormState {
@@ -28,7 +40,100 @@ function getInitialState(): FormState {
     date: now.toPlainDate().toString(),
     time: now.toPlainTime().toString({ smallestUnit: 'minute' }).slice(0, 5),
     timeZone,
+    color: DEFAULT_TIMER_COLOR,
+    icon: DEFAULT_TIMER_ICON,
   }
+}
+
+function ColorSelector({ value, onChange, disabled }: { value: TimerColor; onChange: (color: TimerColor) => void; disabled?: boolean }) {
+  return (
+    <fieldset className="border border-white/10 rounded-2xl p-4" disabled={disabled}>
+      <legend className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Color de acento</legend>
+      <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="Seleccionar color de acento">
+        {TIMER_COLORS_ORDERED.map((color) => {
+          const isSelected = value === color
+          const hex = getTimerColorHex(color, false)
+          const darkHex = getTimerColorHex(color, true)
+          return (
+            <button
+              key={color}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={TIMER_COLOR_LABELS[color]}
+              disabled={disabled}
+              onClick={() => !disabled && onChange(color)}
+              onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+                if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault()
+                  onChange(color)
+                }
+              }}
+              className={`relative size-10 rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                isSelected
+                  ? 'ring-2 ring-white scale-110 shadow-lg'
+                  : 'hover:scale-105 focus-visible:ring-cyan-300/50'
+              }`}
+              style={{
+                background: `linear-gradient(135deg, ${hex} 0%, ${darkHex} 100%)`,
+                boxShadow: isSelected ? `0 0 0 2px ${hex}, 0 0 0 4px ${darkHex}` : undefined,
+              }}
+            >
+              {isSelected && <span className="absolute inset-0 flex items-center justify-center size-5 text-white drop-shadow">✓</span>}
+            </button>
+          )
+        })}
+      </div>
+      <div className="mt-3 flex justify-center gap-4 text-[0.65rem] text-slate-500">
+        {TIMER_COLORS_ORDERED.map((color) => (
+          <span key={color} className={`${value === color ? 'font-semibold text-white' : ''}`}>{TIMER_COLOR_LABELS[color]}</span>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
+function IconSelector({ value, onChange, disabled }: { value: TimerIcon; onChange: (icon: TimerIcon) => void; disabled?: boolean }) {
+  return (
+    <fieldset className="border border-white/10 rounded-2xl p-4" disabled={disabled}>
+      <legend className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Icono</legend>
+      <div className="grid grid-cols-5 gap-3" role="radiogroup" aria-label="Seleccionar icono">
+        {TIMER_ICONS_ORDERED.map((icon) => {
+          const isSelected = value === icon
+          const iconName = getTimerIconName(icon)
+          return (
+            <button
+              key={icon}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={TIMER_ICON_LABELS[icon]}
+              disabled={disabled}
+              onClick={() => !disabled && onChange(icon)}
+              onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+                if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault()
+                  onChange(icon)
+                }
+              }}
+              className={`relative aspect-square rounded-xl border-2 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                isSelected
+                  ? 'border-cyan-300 bg-cyan-300/10 scale-105'
+                  : 'border-white/10 hover:border-white/30 hover:bg-white/5 focus-visible:border-cyan-300/50'
+              }`}
+            >
+              {icon === 'none' ? (
+                <span className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-medium text-slate-500">Ø</span>
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center size-6 text-slate-300" data-icon={iconName ?? ''} aria-hidden="true">{iconName}</span>
+              )}
+              {isSelected && <span className="absolute top-1 right-1 size-4 text-cyan-300">✓</span>}
+            </button>
+          )
+        })}
+      </div>
+    </fieldset>
+  )
 }
 
 export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
@@ -45,8 +150,8 @@ export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
       const instant = localDateTimeToInstant(`${form.date}T${form.time}:00`, form.timeZone)
       const draft: TimerDraft =
         form.type === 'counter'
-          ? { type: 'counter', title: form.title, timeZone: form.timeZone, startAt: instant }
-          : { type: 'countdown', title: form.title, timeZone: form.timeZone, targetAt: instant }
+          ? { type: 'counter', title: form.title, timeZone: form.timeZone, startAt: instant, color: form.color, icon: form.icon }
+          : { type: 'countdown', title: form.title, timeZone: form.timeZone, targetAt: instant, color: form.color, icon: form.icon }
 
       await onSubmit(draft)
       setForm(getInitialState())
@@ -132,6 +237,9 @@ export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
         <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">Zona horaria detectada</p>
         <p className="mt-1 font-mono text-sm text-cyan-100">{form.timeZone}</p>
       </div>
+
+      <ColorSelector value={form.color} onChange={(color) => setForm({ ...form, color })} disabled={isSubmitting} />
+      <IconSelector value={form.icon} onChange={(icon) => setForm({ ...form, icon })} disabled={isSubmitting} />
 
       <div className="flex gap-3 pt-2">
         <button
