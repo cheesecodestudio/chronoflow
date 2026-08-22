@@ -106,6 +106,7 @@ describe('PresentationPage', () => {
 
     expect(screen.getByRole('heading', { name: 'No hay timers para mostrar.' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Volver a Manage' })).toHaveAttribute('href', '/manage')
+    expect(screen.queryByRole('button', { name: 'Configuración' })).not.toBeInTheDocument()
   })
 
   it('shows retry and Manage navigation for invalid storage', async () => {
