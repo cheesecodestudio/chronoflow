@@ -138,6 +138,29 @@ export function formatDurationManage(duration: Temporal.Duration): string {
   return parts.length > 0 ? parts.join(':') : '0MIN:0SEG'
 }
 
+export interface DurationManagePart {
+  value: number
+  label: string
+  visible: boolean
+}
+
+export function formatDurationManageParts(duration: Temporal.Duration): DurationManagePart[] {
+  const units: Array<{ unit: keyof DurationParts; label: string; alwaysVisible: boolean }> = [
+    { unit: 'years', label: 'A', alwaysVisible: false },
+    { unit: 'months', label: 'M', alwaysVisible: false },
+    { unit: 'days', label: 'D', alwaysVisible: false },
+    { unit: 'hours', label: 'H', alwaysVisible: false },
+    { unit: 'minutes', label: 'MIN', alwaysVisible: true },
+    { unit: 'seconds', label: 'SEG', alwaysVisible: true },
+  ]
+
+  return units.map(({ unit, label, alwaysVisible }) => ({
+    value: Math.trunc(duration[unit]),
+    label,
+    visible: alwaysVisible || Math.trunc(duration[unit]) > 0,
+  }))
+}
+
 export interface DurationPresentBlock {
   label: string
   value: number
