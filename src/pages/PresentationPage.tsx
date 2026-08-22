@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Temporal } from 'temporal-polyfill'
 
+import { AppIcon } from '../components/AppIcon'
 import type { Timer } from '../features/timers/timer.types'
 import type { TimerRepository } from '../features/timers/timer.repository'
 import { calculateElapsed, calculateRemaining, formatDurationPresent, isCountdownCompleted, type DurationPresentBlock } from '../features/timers/timer.utils'
@@ -190,7 +191,7 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       <div className={`absolute inset-x-0 top-0 z-10 p-3 transition duration-500 sm:p-6 lg:p-8 ${areControlsVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-5 opacity-0'}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <Link to="/manage" className="group inline-flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-slate-500 transition hover:text-white sm:gap-3 sm:text-xs sm:tracking-[0.2em]" aria-label="Salir a Manage View">
-            <span className="grid size-9 place-items-center rounded-full border border-white/15 text-base transition group-hover:border-cyan-200/50 group-hover:text-cyan-100">←</span>
+            <span className="grid size-9 place-items-center rounded-full border border-white/15 text-base transition group-hover:border-cyan-200/50 group-hover:text-cyan-100"><AppIcon name="arrowLeft" className="size-3.5" /></span>
             Manage View
           </Link>
           <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-slate-600 sm:text-[0.65rem] sm:tracking-[0.24em]">Chronoflow / live</p>
@@ -222,14 +223,14 @@ export function PresentationPage({ repository }: PresentationPageProps) {
             <span className="hidden sm:inline">{isPaused ? 'En pausa' : 'Reproduciendo'}</span>
           </div>
           <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
-            <button type="button" aria-label="Timer anterior" onClick={() => moveTimer(-1)} className="presentation-control">←</button>
+            <button type="button" aria-label="Timer anterior" onClick={() => moveTimer(-1)} className="presentation-control"><AppIcon name="arrowLeft" className="size-3.5" /></button>
             <button type="button" aria-label={isPaused ? 'Reanudar presentación' : 'Pausar presentación'} onClick={() => setIsPaused((paused) => !paused)} className="presentation-control presentation-control-wide">
-              <span aria-hidden="true">{isPaused ? '▶' : 'Ⅱ'}</span>
+              <AppIcon name={isPaused ? 'play' : 'pause'} className="size-3" />
               <span className="hidden sm:inline">{isPaused ? 'Reanudar' : 'Pausar'}</span>
             </button>
-            <button type="button" aria-label="Siguiente timer" onClick={() => moveTimer(1)} className="presentation-control">→</button>
+            <button type="button" aria-label="Siguiente timer" onClick={() => moveTimer(1)} className="presentation-control"><AppIcon name="arrowRight" className="size-3.5" /></button>
             <button type="button" aria-label={isFullscreen ? 'Salir de fullscreen' : 'Activar fullscreen'} onClick={() => void toggleFullscreen()} className="presentation-control border-amber-200/20 text-amber-100 hover:bg-amber-100/10 sm:ml-2">
-              {isFullscreen ? '↙' : '↗'}
+              <AppIcon name={isFullscreen ? 'compress' : 'expand'} className="size-3.5" />
             </button>
           </div>
         </div>

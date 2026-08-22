@@ -59,11 +59,47 @@ describe('ManagePage', () => {
     expect(screen.getByText('Aún no hay momentos guardados.')).toBeInTheDocument()
   })
 
+  it('opens the settings shell from Manage and closes it without persistence', async () => {
+    const storage = new MemoryStorage()
+    renderManage(new LocalStorageTimerRepository(storage, () => NOW))
+
+    const trigger = await screen.findByRole('button', { name: 'Configuración' })
+    fireEvent.click(trigger)
+
+    const dialog = screen.getByRole('dialog', { name: 'Configuración' })
+    expect(dialog).toBeInTheDocument()
+    expect(screen.getByText('MVP-113')).toBeInTheDocument()
+    expect(screen.getByText('MVP-114')).toBeInTheDocument()
+    expect(screen.getByText('MVP-115')).toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cerrar configuración' }))
+    expect(storage.getItem('chronoflow:settings:v1')).toBeNull()
+
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cerrar configuración' }))
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Configuración' })).not.toBeInTheDocument()
+    expect(document.activeElement).toBe(trigger)
+    expect(storage.getItem('chronoflow:settings:v1')).toBeNull()
+  })
+
+  it('closes the settings shell from the backdrop but not from its panel', async () => {
+    renderManage(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW))
+    fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Configuración' })
+    fireEvent.click(dialog)
+    expect(screen.getByRole('dialog', { name: 'Configuración' })).toBeInTheDocument()
+
+    fireEvent.click(dialog.parentElement!)
+    expect(screen.queryByRole('dialog', { name: 'Configuración' })).not.toBeInTheDocument()
+  })
+
   it('creates a counter from the form', async () => {
     const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
     renderManage(repository)
 
-    fireEvent.click(screen.getByRole('button', { name: '+ Nuevo timer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo timer' }))
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'No tomar café' } })
     fireEvent.click(screen.getByRole('button', { name: 'Crear timer' }))
 

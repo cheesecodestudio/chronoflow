@@ -1,5 +1,6 @@
 import { Temporal } from 'temporal-polyfill'
 
+import { AppIcon } from './AppIcon'
 import type { Timer } from '../features/timers/timer.types'
 import {
   calculateElapsed,
@@ -79,6 +80,7 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
             className="min-h-10 rounded-full border border-cyan-200/20 bg-cyan-200/10 px-4 text-xs font-semibold uppercase tracking-wider text-cyan-100 transition hover:bg-cyan-200/20 focus-visible:outline-2 focus-visible:outline-cyan-200"
             onClick={() => onRestart(timer)}
           >
+            <AppIcon name="rotateRight" className="size-3" />
             Reiniciar
           </button>
         ) : null}
@@ -87,6 +89,7 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
           className="min-h-10 rounded-full border border-white/10 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400 transition hover:border-red-300/30 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-red-200"
           onClick={() => onDelete(timer)}
         >
+          <AppIcon name="trash" className="size-3" />
           Eliminar
         </button>
       </div>
