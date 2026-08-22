@@ -1,6 +1,8 @@
-import { useEffect, useRef, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 
 import { AppIcon } from './AppIcon'
+import { readPresentationSettings, writePresentationSettings, getSlideDurationErrorMessage, MIN_SLIDE_DURATION_MS, MAX_SLIDE_DURATION_MS, SLIDE_DURATION_STEP_MS } from '../features/timers/presentation.settings'
+import { useSettings } from '../features/timers/SettingsContext'
 
 interface SettingsModalProps {
   onClose: () => void
@@ -19,6 +21,9 @@ const focusableSelector = [
 export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const [slideDuration, setSlideDuration] = useState<number>(() => readPresentationSettings().slideDurationMs)
+  const [slideDurationError, setSlideDurationError] = useState<string | null>(null)
+  const { showSeconds, setShowSeconds } = useSettings()
 
   useEffect(() => {
     closeButtonRef.current?.focus()
@@ -105,8 +110,70 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
               </div>
             </div>
             <div className="mt-5 space-y-3">
-              <PlaceholderCard ticket="MVP-113" title="Mostrar u ocultar segundos" />
-              <PlaceholderCard ticket="MVP-114" title="Duración configurable de slides" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-slate-500">MVP-113</p>
+                  <p className="mt-1 text-sm font-medium text-slate-200">Mostrar u ocultar segundos</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showSeconds}
+                  aria-label={showSeconds ? 'Ocultar segundos' : 'Mostrar segundos'}
+                  onClick={() => setShowSeconds(!showSeconds)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-cyan-200 focus-visible:outline-offset-2 ${
+                    showSeconds ? 'bg-cyan-300' : 'bg-white/10'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      showSeconds ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="slide-duration" className="block font-mono text-[0.6rem] uppercase tracking-[0.2em] text-slate-400">
+                  Duración por slide (ms)
+                </label>
+                <div className="relative">
+                  <input
+                    id="slide-duration"
+                    type="number"
+                    min={MIN_SLIDE_DURATION_MS}
+                    max={MAX_SLIDE_DURATION_MS}
+                    step={SLIDE_DURATION_STEP_MS}
+                    value={slideDuration}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      setSlideDuration(value)
+                      const error = getSlideDurationErrorMessage(value)
+                      setSlideDurationError(error)
+                    }}
+                    onBlur={() => {
+                      const error = getSlideDurationErrorMessage(slideDuration)
+                      if (error) {
+                        setSlideDurationError(error)
+                      } else {
+                        setSlideDurationError(null)
+                        writePresentationSettings({ slideDurationMs: slideDuration })
+                      }
+                    }}
+                    className="w-full rounded-lg border border-white/10 bg-black/20 px-4 py-3 font-mono text-sm text-white placeholder:text-slate-500 focus:border-cyan-300 focus:outline-none focus:ring-1 focus:ring-cyan-300"
+                    aria-describedby={slideDurationError ? 'slide-duration-error' : undefined}
+                    aria-invalid={slideDurationError ? 'true' : 'false'}
+                  />
+                  {slideDurationError && (
+                    <p id="slide-duration-error" className="mt-1.5 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-red-400" role="alert" aria-live="polite">
+                      {slideDurationError}
+                    </p>
+                  )}
+                </div>
+                <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-slate-500">
+                  Mínimo {MIN_SLIDE_DURATION_MS}ms, máximo {MAX_SLIDE_DURATION_MS}ms, incrementos de {SLIDE_DURATION_STEP_MS}ms
+                </p>
+              </div>
             </div>
           </section>
 
