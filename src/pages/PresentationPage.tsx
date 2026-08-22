@@ -198,7 +198,7 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       </div>
 
       <div className="relative flex min-h-[calc(100dvh-8.5rem)] w-full items-center justify-center overflow-visible px-3 py-12 sm:absolute sm:inset-x-0 sm:bottom-[6.5rem] sm:top-[5.5rem] sm:min-h-0 sm:w-auto sm:overflow-hidden sm:px-8 sm:py-0 lg:bottom-[7.5rem] lg:top-[6.5rem]">
-        <div className={`w-full max-w-6xl text-center transition duration-[280ms] ${transitionPhase !== 'idle' ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
+        <div className={`w-full max-w-6xl text-center transition duration-[${FADE_DURATION_MS}ms] ${transitionPhase !== 'idle' ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
           <div className="flex items-center justify-center gap-2 font-mono text-[0.6rem] uppercase tracking-[0.22em] text-cyan-300 sm:gap-3 sm:text-xs sm:tracking-[0.3em]">
             <span className={`h-2 w-2 rounded-full ${currentTimer.type === 'counter' ? 'bg-cyan-300' : 'bg-amber-300'}`} />
             {currentTimer.type === 'counter' ? 'Counter' : 'Countdown'}
