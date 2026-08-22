@@ -5,7 +5,8 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PresentationPage } from './PresentationPage'
-import { SLIDE_DURATION_MS } from '../features/timers/presentation.constants'
+import { getSlideDurationMs } from '../features/timers/presentation.constants'
+import { SettingsProvider } from '../features/timers/SettingsContext'
 import {
   LocalStorageTimerRepository,
   TIMER_STORAGE_KEY,
@@ -70,12 +71,14 @@ function countdown(id: string): Extract<RepositoryTimer, { type: 'countdown' }> 
 
 function renderPresentation(repository: LocalStorageTimerRepository) {
   return render(
-    <MemoryRouter initialEntries={['/view']}>
-      <Routes>
-        <Route path="/view" element={<PresentationPage repository={repository} />} />
-        <Route path="/manage" element={<p>Manage destination</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <SettingsProvider>
+      <MemoryRouter initialEntries={['/view']}>
+        <Routes>
+          <Route path="/view" element={<PresentationPage repository={repository} />} />
+          <Route path="/manage" element={<p>Manage destination</p>} />
+        </Routes>
+      </MemoryRouter>
+    </SettingsProvider>,
   )
 }
 
@@ -130,7 +133,7 @@ describe('PresentationPage', () => {
     expect(screen.getByRole('heading', { name: 'Only timer' })).toBeInTheDocument()
 
     await act(async () => {
-      vi.advanceTimersByTime(SLIDE_DURATION_MS * 2)
+      vi.advanceTimersByTime(getSlideDurationMs() * 2)
     })
 
     expect(screen.getByRole('heading', { name: 'Only timer' })).toBeInTheDocument()
@@ -171,7 +174,7 @@ describe('PresentationPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Pausar presentación' }))
     await act(async () => {
-      vi.advanceTimersByTime(SLIDE_DURATION_MS)
+      vi.advanceTimersByTime(getSlideDurationMs())
     })
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reanudar presentación' })).toBeInTheDocument()
@@ -226,7 +229,7 @@ describe('PresentationPage', () => {
     expect(controlsBar).toHaveClass('opacity-100')
 
     await act(async () => {
-      vi.advanceTimersByTime(SLIDE_DURATION_MS)
+      vi.advanceTimersByTime(getSlideDurationMs())
     })
     expect(controlsBar).toHaveClass('opacity-0')
 

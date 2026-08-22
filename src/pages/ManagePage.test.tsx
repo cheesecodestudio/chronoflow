@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 
 import { ManagePage } from './ManagePage'
+import { SettingsProvider } from '../features/timers/SettingsContext'
 import {
   LocalStorageTimerRepository,
   TIMER_STORAGE_KEY,
@@ -42,7 +43,9 @@ const NOW = Temporal.Instant.from('2024-01-01T00:00:00Z')
 function renderManage(repository: LocalStorageTimerRepository) {
   return render(
     <MemoryRouter>
-      <ManagePage repository={repository} />
+      <SettingsProvider>
+        <ManagePage repository={repository} />
+      </SettingsProvider>
     </MemoryRouter>,
   )
 }
@@ -69,7 +72,7 @@ describe('ManagePage', () => {
     const dialog = screen.getByRole('dialog', { name: 'Configuración' })
     expect(dialog).toBeInTheDocument()
     expect(screen.getByText('MVP-113')).toBeInTheDocument()
-    expect(screen.getByText('MVP-114')).toBeInTheDocument()
+    expect(screen.getByLabelText('Duración por slide (ms)')).toBeInTheDocument()
     expect(screen.getByText('MVP-115')).toBeInTheDocument()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cerrar configuración' }))
     expect(storage.getItem('chronoflow:settings:v1')).toBeNull()

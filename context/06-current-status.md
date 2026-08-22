@@ -96,11 +96,13 @@ La Fase 0 y el MVP 1 están completados. El flujo local crear → persistir → 
 - [x] Duración predeterminada oficial de slides alineada en `5000 ms`.
 - [x] Backlog ejecutable del MVP 1.1 documentado en `08-mvp-1.1-roadmap.md`.
 - [x] **MVP-110 completado**: contexto sincronizado, MVP 1 cerrado, MVP 1.1 activo, fade estandarizado en 280 ms con testing, plan de ejecución incorporado al orden de lectura.
+- [x] **MVP-1131 completado**: modal contenedor de configuraciones (MVP-1131) y scrollbars alineados con la estética de Chronoflow (navy/cyan, fallback nativo, forced-colors). Solo en `/manage`, placeholders para MVP-113/114/115, sin lógica funcional ni persistencia. Tests, lint, build y verificación manual validados.
 
 ## Entregables del MVP 1.1
 
 - [x] `MVP-111`: mejorar estados vacíos y de error.
 - [ ] `MVP-112`: duplicar timer.
+- [x] `MVP-1131`: modal contenedor de configuraciones y scrollbars temáticos.
 - [ ] `MVP-113`: mostrar u ocultar segundos.
 - [ ] `MVP-114`: duración global configurable, predeterminada en 5 segundos.
 - [ ] `MVP-115`: personalización visual básica.
