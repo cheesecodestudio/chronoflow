@@ -9,6 +9,7 @@ import {
   formatDurationManageParts,
   isCountdownCompleted,
 } from '../features/timers/timer.utils'
+import { useSettings } from '../features/timers/SettingsContext'
 
 interface TimerCardProps {
   timer: Timer
@@ -18,18 +19,23 @@ interface TimerCardProps {
 }
 
 export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
+  const { showSeconds } = useSettings()
   const isCounter = timer.type === 'counter'
   const completed = !isCounter && isCountdownCompleted(timer, now)
+  const counterTimer = timer as Extract<Timer, { type: 'counter' }>
+  const countdownTimer = timer as Extract<Timer, { type: 'countdown' }>
   const duration = isCounter
-    ? formatDurationManage(calculateElapsed(timer, now))
+    ? formatDurationManage(calculateElapsed(counterTimer, now))
     : completed
       ? 'Llegó el momento'
-      : formatDurationManage(calculateRemaining(timer, now))
+      : formatDurationManage(calculateRemaining(countdownTimer, now))
+  const elapsed = calculateElapsed(counterTimer, now)
+  const remaining = calculateRemaining(countdownTimer, now)
   const durationParts = isCounter
-    ? formatDurationManageParts(calculateElapsed(timer, now))
+    ? formatDurationManageParts(elapsed, showSeconds)
     : completed
       ? []
-      : formatDurationManageParts(calculateRemaining(timer, now))
+      : formatDurationManageParts(remaining, showSeconds)
 
   return (
     <article className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#101e2c]/90 p-6 shadow-xl shadow-[#020a12]/25 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:shadow-cyan-950/30">

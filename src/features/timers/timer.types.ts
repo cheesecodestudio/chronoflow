@@ -1,5 +1,7 @@
 export type TimerType = 'counter' | 'countdown'
 
+import type { TimerColor, TimerIcon } from './timer.customization'
+
 export interface TimerBase {
   id: string
   title: string
@@ -7,6 +9,8 @@ export interface TimerBase {
   position: number
   createdAt: string
   updatedAt: string
+  color?: TimerColor
+  icon?: TimerIcon
 }
 
 export interface CounterTimer extends TimerBase {
