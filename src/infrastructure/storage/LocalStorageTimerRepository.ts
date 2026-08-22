@@ -83,12 +83,16 @@ export class LocalStorageTimerRepository implements TimerRepository {
       const parsed: unknown = JSON.parse(raw)
 
       if (!isStorageEnvelope(parsed)) {
-        return []
+        throw new InvalidTimerStorageError()
       }
 
       return parsed.timers.filter(isTimer)
-    } catch {
-      return []
+    } catch (error) {
+      if (error instanceof InvalidTimerStorageError) {
+        throw error
+      }
+
+      throw new InvalidTimerStorageError()
     }
   }
 
@@ -99,6 +103,13 @@ export class LocalStorageTimerRepository implements TimerRepository {
     }
 
     this.storage.setItem(TIMER_STORAGE_KEY, JSON.stringify(envelope))
+  }
+}
+
+export class InvalidTimerStorageError extends Error {
+  constructor() {
+    super('El almacenamiento de timers no es válido.')
+    this.name = 'InvalidTimerStorageError'
   }
 }
 
