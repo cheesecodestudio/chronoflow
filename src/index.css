@@ -14,6 +14,56 @@
   box-sizing: border-box;
 }
 
+/* Chronoflow scrollbar: quiet navy surfaces with a cyan observatory accent. */
+:root,
+* {
+  scrollbar-color: rgba(71, 99, 122, 0.9) rgba(5, 11, 19, 0.72);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(5, 11, 19, 0.72);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(5, 11, 19, 0.9);
+  border-radius: 9999px;
+  background: rgba(71, 99, 122, 0.9);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(103, 232, 249, 0.86);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #050b13;
+}
+
+@media (forced-colors: active) {
+  :root,
+  * {
+    forced-color-adjust: auto;
+    scrollbar-color: auto;
+  }
+
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: Canvas;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-color: Canvas;
+    background: ButtonText;
+  }
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;
