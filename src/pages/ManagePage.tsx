@@ -13,7 +13,7 @@ interface ManagePageProps {
 }
 
 export function ManagePage({ repository }: ManagePageProps) {
-  const { timers, isLoading, error, create, remove, restart } = useTimers(repository)
+  const { timers, isLoading, error, create, remove, restart, reload } = useTimers(repository)
   const [now, setNow] = useState(() => Temporal.Now.instant())
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -104,7 +104,9 @@ export function ManagePage({ repository }: ManagePageProps) {
         <section className="flex flex-col justify-between gap-4 border-y border-white/10 py-5 sm:flex-row sm:items-center">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Your timeline</p>
-            <p className="mt-1 text-sm text-slate-300">{timers.length === 0 ? 'Aún no hay momentos guardados.' : `${timers.length} momentos en observación.`}</p>
+            <p className="mt-1 text-sm text-slate-300">
+              {error ? 'No se pudo cargar la colección.' : timers.length === 0 ? 'Aún no hay momentos guardados.' : `${timers.length} momentos en observación.`}
+            </p>
           </div>
           <button
             type="button"
@@ -115,19 +117,33 @@ export function ManagePage({ repository }: ManagePageProps) {
           </button>
         </section>
 
-        {error || actionError ? (
+        {actionError ? (
           <p className="mt-6 rounded-2xl border border-red-300/20 bg-red-300/10 px-4 py-3 text-sm text-red-100" role="alert">
-            {error ?? actionError}
+            {actionError}
           </p>
         ) : null}
 
         {isLoading ? (
           <div className="grid min-h-64 place-items-center py-12 text-sm text-slate-500" role="status">Cargando timers...</div>
+        ) : error ? (
+          <section className="relative my-10 overflow-hidden rounded-[2rem] border border-red-300/20 bg-red-300/[0.04] px-6 py-20 text-center sm:px-12" role="alert">
+            <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-300/10 blur-3xl" />
+            <p className="relative font-mono text-xs uppercase tracking-[0.25em] text-red-200/80">Manage View · unavailable</p>
+            <h2 className="relative mt-4 font-serif text-4xl text-white">No pudimos cargar tus timers.</h2>
+            <p className="relative mx-auto mt-4 max-w-md text-sm leading-6 text-slate-400">Inténtalo nuevamente para volver a tu colección.</p>
+            <button
+              type="button"
+              onClick={() => { setActionError(null); void reload() }}
+              className="relative mt-8 rounded-full bg-red-200 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#07111f] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-red-200"
+            >
+              Reintentar
+            </button>
+          </section>
         ) : timers.length === 0 ? (
           <section className="relative my-10 overflow-hidden rounded-[2rem] border border-dashed border-cyan-200/20 bg-cyan-200/[0.03] px-6 py-20 text-center sm:px-12">
             <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300/10 blur-3xl" />
             <p className="relative font-mono text-xs uppercase tracking-[0.25em] text-cyan-300/80">Observatory is quiet</p>
-            <h2 className="relative mt-4 font-serif text-4xl text-white">Make the first moment count.</h2>
+            <h2 className="relative mt-4 font-serif text-4xl text-white">Aún no tienes timers.</h2>
             <p className="relative mx-auto mt-4 max-w-md text-sm leading-6 text-slate-400">Crea un counter para medir lo que ya empezó o un countdown para esperar lo que viene.</p>
             <button
               type="button"
