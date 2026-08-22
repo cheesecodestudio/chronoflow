@@ -6,8 +6,9 @@ import { AppIcon } from '../components/AppIcon'
 import type { Timer } from '../features/timers/timer.types'
 import type { TimerRepository } from '../features/timers/timer.repository'
 import { calculateElapsed, calculateRemaining, formatDurationPresent, isCountdownCompleted, type DurationPresentBlock } from '../features/timers/timer.utils'
-import { FADE_DURATION_MS, SLIDE_DURATION_MS } from '../features/timers/presentation.constants'
+import { FADE_DURATION_MS, getSlideDurationMs } from '../features/timers/presentation.constants'
 import { useTimers } from '../features/timers/useTimers'
+import { useSettings } from '../features/timers/SettingsContext'
 
 interface PresentationPageProps {
   repository?: TimerRepository
@@ -16,6 +17,7 @@ interface PresentationPageProps {
 export function PresentationPage({ repository }: PresentationPageProps) {
   const navigate = useNavigate()
   const { timers, isLoading, error, reload } = useTimers(repository)
+  const { showSeconds } = useSettings()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -65,14 +67,14 @@ export function PresentationPage({ repository }: PresentationPageProps) {
     controlsTimeout.current = window.setTimeout(() => {
       setAreControlsVisible(false)
       controlsTimeout.current = null
-    }, SLIDE_DURATION_MS)
+    }, getSlideDurationMs())
   }, [])
 
   useEffect(() => {
     controlsTimeout.current = window.setTimeout(() => {
       setAreControlsVisible(false)
       controlsTimeout.current = null
-    }, SLIDE_DURATION_MS)
+    }, getSlideDurationMs())
   }, [])
 
   useEffect(() => {
@@ -80,8 +82,9 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       return
     }
 
-    const interval = window.setTimeout(() => moveTimer(1), SLIDE_DURATION_MS)
-    return () => window.clearTimeout(interval)
+    const duration = getSlideDurationMs()
+    const interval = window.setInterval(() => moveTimer(1), duration)
+    return () => window.clearInterval(interval)
   }, [isPaused, moveTimer, timers.length, currentIndex])
 
   useEffect(() => {
@@ -209,7 +212,7 @@ export function PresentationPage({ repository }: PresentationPageProps) {
           </h1>
           <p className="mt-2 font-mono text-[0.55rem] uppercase tracking-[0.14em] text-slate-500 sm:mt-4 sm:text-[0.65rem] sm:tracking-[0.2em] lg:mt-5">{currentTimer.timeZone}</p>
 
-          <PresentationDuration timer={currentTimer} now={now} />
+          <PresentationDuration timer={currentTimer} now={now} showSeconds={showSeconds} />
         </div>
       </div>
 
@@ -251,13 +254,15 @@ function getPresentationTitleSize(title: string): string {
   return 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl 2xl:text-9xl'
 }
 
-function PresentationDuration({ timer, now }: { timer: Timer; now: Temporal.Instant }) {
+function PresentationDuration({ timer, now, showSeconds }: { timer: Timer; now: Temporal.Instant; showSeconds: boolean }) {
   const completed = timer.type === 'countdown' && isCountdownCompleted(timer, now)
+  const counterTimer = timer as Extract<Timer, { type: 'counter' }>
+  const countdownTimer = timer as Extract<Timer, { type: 'countdown' }>
   const durationData = timer.type === 'counter'
-    ? formatDurationPresent(calculateElapsed(timer, now))
+    ? formatDurationPresent(calculateElapsed(counterTimer, now), showSeconds)
     : completed
       ? null
-      : formatDurationPresent(calculateRemaining(timer, now))
+      : formatDurationPresent(calculateRemaining(countdownTimer, now), showSeconds)
 
   if (completed) {
     return (
