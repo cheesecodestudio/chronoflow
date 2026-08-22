@@ -14,7 +14,7 @@ interface PresentationPageProps {
 
 export function PresentationPage({ repository }: PresentationPageProps) {
   const navigate = useNavigate()
-  const { timers, isLoading, error } = useTimers(repository)
+  const { timers, isLoading, error, reload } = useTimers(repository)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -146,16 +146,26 @@ export function PresentationPage({ repository }: PresentationPageProps) {
   const currentTimer = timers.length > 0 ? timers[currentIndex % timers.length] : null
 
   if (isLoading) {
-    return <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] text-sm text-slate-500 sm:h-dvh sm:min-h-0 sm:overflow-hidden">Cargando presentación...</main>
+    return <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] text-sm text-slate-500 sm:h-dvh sm:min-h-0 sm:overflow-hidden" role="status">Cargando presentación...</main>
   }
 
   if (error) {
     return (
-      <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] px-6 text-center text-red-100 sm:h-dvh sm:min-h-0 sm:overflow-hidden">
+      <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] px-6 text-center text-red-100 sm:h-dvh sm:min-h-0 sm:overflow-hidden" role="alert">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.24em] text-red-300">Presentation View</p>
-          <h1 className="mt-4 font-serif text-4xl">No se pudieron cargar los timers.</h1>
-          <Link className="mt-8 inline-flex rounded-full border border-white/15 px-5 py-3 text-xs font-bold uppercase tracking-wider text-white" to="/manage">Volver a Manage</Link>
+          <h1 className="mt-4 font-serif text-4xl">No pudimos cargar la presentación.</h1>
+          <p className="mx-auto mt-5 max-w-md text-sm leading-6 text-slate-400">Puedes intentarlo nuevamente o volver a Manage.</p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => void reload()}
+              className="inline-flex rounded-full bg-cyan-200 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#07111f] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-white"
+            >
+              Reintentar
+            </button>
+            <Link className="inline-flex rounded-full border border-white/15 px-5 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-white/40 focus-visible:outline-2 focus-visible:outline-white" to="/manage">Volver a Manage</Link>
+          </div>
         </div>
       </main>
     )
@@ -335,9 +345,9 @@ function EmptyPresentation() {
     <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] px-6 text-center text-white sm:h-dvh sm:min-h-0 sm:overflow-hidden">
       <div>
         <p className="font-mono text-xs uppercase tracking-[0.26em] text-cyan-300">Presentation View</p>
-        <h1 className="mt-5 font-serif text-5xl leading-none sm:text-7xl">The screen is ready.</h1>
-        <p className="mx-auto mt-5 max-w-md text-sm leading-6 text-slate-400">Crea un timer desde Manage View para comenzar la secuencia.</p>
-        <Link to="/manage" className="mt-8 inline-flex rounded-full bg-cyan-200 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#07111f] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-white">Ir a Manage View</Link>
+        <h1 className="mt-5 font-serif text-5xl leading-none sm:text-7xl">No hay timers para mostrar.</h1>
+        <p className="mx-auto mt-5 max-w-md text-sm leading-6 text-slate-400">Crea uno desde Manage View para comenzar la secuencia.</p>
+        <Link to="/manage" className="mt-8 inline-flex rounded-full bg-cyan-200 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#07111f] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-white">Volver a Manage</Link>
       </div>
     </main>
   )

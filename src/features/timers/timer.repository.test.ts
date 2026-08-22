@@ -117,17 +117,29 @@ describe('LocalStorageTimerRepository', () => {
     )
   })
 
-  it('ignores empty, corrupt and unsupported storage envelopes', async () => {
+  it('distinguishes empty storage from corrupt and unsupported envelopes', async () => {
     const storage = new MemoryStorage()
     const repository = new LocalStorageTimerRepository(storage)
 
     expect(await repository.getAll()).toEqual([])
 
     storage.setItem(TIMER_STORAGE_KEY, '{bad json')
-    expect(await repository.getAll()).toEqual([])
+    await expect(repository.getAll()).rejects.toThrow('El almacenamiento de timers no es válido.')
 
     storage.setItem(TIMER_STORAGE_KEY, JSON.stringify({ version: 2, timers: [counter('old', 0)] }))
-    expect(await repository.getAll()).toEqual([])
+    await expect(repository.getAll()).rejects.toThrow('El almacenamiento de timers no es válido.')
+  })
+
+  it('keeps valid timers when individual storage records are invalid', async () => {
+    const storage = new MemoryStorage()
+    storage.setItem(TIMER_STORAGE_KEY, JSON.stringify({
+      version: 1,
+      timers: [counter('valid', 0), { id: 'invalid', type: 'unknown' }],
+    }))
+
+    const repository = new LocalStorageTimerRepository(storage)
+
+    expect(await repository.getAll()).toEqual([counter('valid', 0)])
   })
 
   it('creates complete entities through the use case', async () => {
