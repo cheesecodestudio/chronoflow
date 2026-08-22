@@ -68,6 +68,13 @@ export function PresentationPage({ repository }: PresentationPageProps) {
   }, [])
 
   useEffect(() => {
+    controlsTimeout.current = window.setTimeout(() => {
+      setAreControlsVisible(false)
+      controlsTimeout.current = null
+    }, SLIDE_DURATION_MS)
+  }, [])
+
+  useEffect(() => {
     if (isPaused || timers.length < 2) {
       return
     }
@@ -139,12 +146,12 @@ export function PresentationPage({ repository }: PresentationPageProps) {
   const currentTimer = timers.length > 0 ? timers[currentIndex % timers.length] : null
 
   if (isLoading) {
-    return <main className="grid min-h-screen place-items-center bg-[#050b13] text-sm text-slate-500">Cargando presentación...</main>
+    return <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] text-sm text-slate-500 sm:h-dvh sm:min-h-0 sm:overflow-hidden">Cargando presentación...</main>
   }
 
   if (error) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#050b13] px-6 text-center text-red-100">
+      <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] px-6 text-center text-red-100 sm:h-dvh sm:min-h-0 sm:overflow-hidden">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.24em] text-red-300">Presentation View</p>
           <h1 className="mt-4 font-serif text-4xl">No se pudieron cargar los timers.</h1>
@@ -161,56 +168,57 @@ export function PresentationPage({ repository }: PresentationPageProps) {
   return (
     <main
       ref={presentationRef}
-      className="relative flex min-h-screen overflow-hidden bg-[#050b13] text-white"
+      className="relative h-auto min-h-dvh overflow-x-hidden overflow-y-auto bg-[#050b13] text-white sm:h-dvh sm:min-h-0 sm:overflow-hidden"
       onPointerMove={revealControls}
+      onPointerDown={revealControls}
+      onFocusCapture={revealControls}
     >
       <div className="pointer-events-none absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(148,163,184,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.04)_1px,transparent_1px)] [background-size:64px_64px]" />
-      <div className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-cyan-400/10 blur-[120px]" />
+      <div className="pointer-events-none absolute -left-32 h-96 w-96 rounded-full bg-cyan-400/10 blur-[120px]" />
       <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-amber-300/[0.07] blur-[120px]" />
 
-      {/* Barra superior con misma visibilidad que controles inferiores */}
-      <div className={`fixed inset-x-0 top-0 z-10 p-5 transition duration-500 sm:p-8 ${areControlsVisible ? 'translate-y-0 opacity-100' : '-translate-y-5 opacity-0'}`}>
+      <div className={`absolute inset-x-0 top-0 z-10 p-3 transition duration-500 sm:p-6 lg:p-8 ${areControlsVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-5 opacity-0'}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <Link to="/manage" className="group inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-500 transition hover:text-white" aria-label="Salir a Manage View">
-            <span className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-base transition group-hover:border-cyan-200/50 group-hover:text-cyan-100">←</span>
+          <Link to="/manage" className="group inline-flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-slate-500 transition hover:text-white sm:gap-3 sm:text-xs sm:tracking-[0.2em]" aria-label="Salir a Manage View">
+            <span className="grid size-9 place-items-center rounded-full border border-white/15 text-base transition group-hover:border-cyan-200/50 group-hover:text-cyan-100">←</span>
             Manage View
           </Link>
-          <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-slate-600">Chronoflow / live</p>
+          <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-slate-600 sm:text-[0.65rem] sm:tracking-[0.24em]">Chronoflow / live</p>
         </div>
       </div>
 
-      {/* Contenido principal - quitar el padding-top py-20 ya que la barra superior es fixed */}
-      <div className={`relative m-auto w-full max-w-6xl px-6 pt-28 pb-20 transition duration-[400ms] sm:px-12 ${transitionPhase !== 'idle' ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
-        <div className="mt-12 text-center sm:mt-16">
-          <div className="flex items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.3em] text-cyan-300">
+      <div className="relative flex min-h-[calc(100dvh-8.5rem)] w-full items-center justify-center overflow-visible px-3 py-12 sm:absolute sm:inset-x-0 sm:bottom-[6.5rem] sm:top-[5.5rem] sm:min-h-0 sm:w-auto sm:overflow-hidden sm:px-8 sm:py-0 lg:bottom-[7.5rem] lg:top-[6.5rem]">
+        <div className={`w-full max-w-6xl text-center transition duration-[280ms] ${transitionPhase !== 'idle' ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
+          <div className="flex items-center justify-center gap-2 font-mono text-[0.6rem] uppercase tracking-[0.22em] text-cyan-300 sm:gap-3 sm:text-xs sm:tracking-[0.3em]">
             <span className={`h-2 w-2 rounded-full ${currentTimer.type === 'counter' ? 'bg-cyan-300' : 'bg-amber-300'}`} />
             {currentTimer.type === 'counter' ? 'Counter' : 'Countdown'}
           </div>
-          <h1 className="mx-auto mt-7 max-w-5xl break-words font-serif text-6xl leading-[0.92] tracking-tight text-white sm:text-8xl lg:text-[9rem]">
+          <h1 className={`mx-auto mt-2 max-w-5xl break-words font-serif leading-[0.92] tracking-tight text-white sm:mt-4 lg:mt-5 ${getPresentationTitleSize(currentTimer.title)}`}>
             {currentTimer.title}
           </h1>
-          <p className="mt-8 font-mono text-xs uppercase tracking-[0.2em] text-slate-500">{currentTimer.timeZone}</p>
+          <p className="mt-2 font-mono text-[0.55rem] uppercase tracking-[0.14em] text-slate-500 sm:mt-4 sm:text-[0.65rem] sm:tracking-[0.2em] lg:mt-5">{currentTimer.timeZone}</p>
 
           <PresentationDuration timer={currentTimer} now={now} />
         </div>
       </div>
 
-      <div className={`fixed inset-x-0 bottom-0 z-10 p-5 transition duration-500 sm:p-8 ${areControlsVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`}>
-        <div className="mx-auto flex max-w-5xl flex-col gap-4 rounded-[1.75rem] border border-white/10 bg-[#0a1420]/85 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-4">
-          <div className="flex items-center gap-3 px-2 text-xs text-slate-500">
+      <div className={`absolute inset-x-0 bottom-0 z-10 p-2.5 transition duration-500 sm:p-6 lg:p-8 ${areControlsVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-5 opacity-0'}`}>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 rounded-[1.25rem] border border-white/10 bg-[#0a1420]/85 p-2 shadow-2xl shadow-black/30 backdrop-blur-xl sm:gap-4 sm:rounded-[1.75rem] sm:p-4">
+          <div className="flex shrink-0 items-center gap-1.5 px-1 font-mono text-[0.65rem] text-slate-500 sm:gap-3 sm:px-2 sm:text-xs">
             <span className="font-mono text-cyan-200">{String((currentIndex % timers.length) + 1).padStart(2, '0')}</span>
             <span>/</span>
             <span className="font-mono">{String(timers.length).padStart(2, '0')}</span>
             <span className="hidden sm:inline">·</span>
             <span className="hidden sm:inline">{isPaused ? 'En pausa' : 'Reproduciendo'}</span>
           </div>
-          <div className="flex items-center justify-between gap-2 sm:justify-end">
+          <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
             <button type="button" aria-label="Timer anterior" onClick={() => moveTimer(-1)} className="presentation-control">←</button>
             <button type="button" aria-label={isPaused ? 'Reanudar presentación' : 'Pausar presentación'} onClick={() => setIsPaused((paused) => !paused)} className="presentation-control presentation-control-wide">
-              {isPaused ? '▶ Reanudar' : 'Ⅱ Pausar'}
+              <span aria-hidden="true">{isPaused ? '▶' : 'Ⅱ'}</span>
+              <span className="hidden sm:inline">{isPaused ? 'Reanudar' : 'Pausar'}</span>
             </button>
             <button type="button" aria-label="Siguiente timer" onClick={() => moveTimer(1)} className="presentation-control">→</button>
-            <button type="button" aria-label={isFullscreen ? 'Salir de fullscreen' : 'Activar fullscreen'} onClick={() => void toggleFullscreen()} className="presentation-control ml-2 border-amber-200/20 text-amber-100 hover:bg-amber-100/10">
+            <button type="button" aria-label={isFullscreen ? 'Salir de fullscreen' : 'Activar fullscreen'} onClick={() => void toggleFullscreen()} className="presentation-control border-amber-200/20 text-amber-100 hover:bg-amber-100/10 sm:ml-2">
               {isFullscreen ? '↙' : '↗'}
             </button>
           </div>
@@ -218,6 +226,18 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       </div>
     </main>
   )
+}
+
+function getPresentationTitleSize(title: string): string {
+  if (title.length > 60) {
+    return 'text-xl sm:text-3xl md:text-4xl lg:text-5xl 2xl:text-6xl'
+  }
+
+  if (title.length > 24) {
+    return 'text-2xl sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl'
+  }
+
+  return 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl 2xl:text-9xl'
 }
 
 function PresentationDuration({ timer, now }: { timer: Timer; now: Temporal.Instant }) {
@@ -230,8 +250,8 @@ function PresentationDuration({ timer, now }: { timer: Timer; now: Temporal.Inst
 
   if (completed) {
     return (
-      <div className="mt-16" aria-live="polite">
-        <p className="font-serif text-4xl sm:text-6xl text-amber-100 tracking-tight">
+      <div className="mt-6 sm:mt-10 lg:mt-12" aria-live="polite">
+        <p className="font-serif text-3xl tracking-tight text-amber-100 sm:text-5xl lg:text-6xl">
           Llegó el momento
         </p>
       </div>
@@ -242,17 +262,22 @@ function PresentationDuration({ timer, now }: { timer: Timer; now: Temporal.Inst
     return null
   }
 
-  const renderBlock = (blocks: DurationPresentBlock[], isFirstBlock: boolean) => (
-    <div key={isFirstBlock ? 'block1' : 'block2'} className="flex flex-col items-center gap-4">
-      <div className="flex items-end gap-6 sm:gap-10" role="group" aria-label={isFirstBlock ? 'Fecha' : 'Hora'}>
-        {blocks
-          .filter((b) => b.visible)
-          .map((block) => {
+  const renderBlock = (blocks: DurationPresentBlock[], isFirstBlock: boolean) => {
+    const visibleBlocks = blocks.filter((block) => block.visible)
+
+    if (visibleBlocks.length === 0) {
+      return null
+    }
+
+    return (
+      <div key={isFirstBlock ? 'block1' : 'block2'} className="flex flex-col items-center">
+        <div className="flex items-end gap-2 sm:gap-5 lg:gap-8" role="group" aria-label={isFirstBlock ? 'Fecha' : 'Hora'}>
+          {visibleBlocks.map((block) => {
             const progress = Math.min(block.value, 59) / 59
             const dashoffset = 283 - 283 * progress
             return (
-              <div key={block.label} className="flex flex-col items-center gap-3">
-                <div className="relative flex h-32 w-32 sm:h-36 sm:w-36 lg:h-40 lg:w-40 items-center justify-center" aria-hidden="true">
+              <div key={block.label} className="flex flex-col items-center gap-1.5 sm:gap-2 lg:gap-3">
+                <div className="relative flex size-16 items-center justify-center sm:size-20 md:size-24 lg:size-28 2xl:size-36" aria-hidden="true">
                   <svg className="h-full w-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle
                       cx="50"
@@ -279,24 +304,25 @@ function PresentationDuration({ timer, now }: { timer: Timer; now: Temporal.Inst
                       style={{ filter: 'drop-shadow(0 0 2px currentColor)' }}
                     />
                   </svg>
-                  <span className="absolute inset-0 flex items-center justify-center font-mono text-3xl sm:text-4xl lg:text-5xl font-bold tabular-nums text-white">
+                  <span className="absolute inset-0 flex items-center justify-center font-mono text-2xl font-bold tabular-nums text-white sm:text-3xl lg:text-4xl 2xl:text-5xl">
                     {String(block.value).padStart(2, '0')}
                   </span>
                 </div>
-                <span className="font-mono text-xs uppercase tracking-[0.2em] text-slate-400">{block.label}</span>
+                <span className="font-mono text-[0.5rem] uppercase tracking-[0.12em] text-slate-400 sm:text-[0.6rem] sm:tracking-[0.16em] lg:text-xs lg:tracking-[0.2em]">{block.label}</span>
               </div>
             )
           })}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
-    <div className="mt-16" aria-live="polite">
-      <p className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-slate-500 mb-8">
+    <div className="mt-3 sm:mt-6 lg:mt-8" aria-live="polite">
+      <p className="mb-3 font-mono text-[0.55rem] uppercase tracking-[0.18em] text-slate-500 sm:mb-5 sm:text-[0.65rem] sm:tracking-[0.24em] lg:mb-7 lg:text-[0.7rem] lg:tracking-[0.28em]">
         {timer.type === 'counter' ? 'Tiempo transcurrido' : 'Tiempo restante'}
       </p>
-      <div className="flex flex-col items-center gap-12">
+      <div className="flex flex-col items-center gap-3 sm:gap-6 2xl:gap-8">
         {renderBlock(durationData.block1, true)}
         {renderBlock(durationData.block2, false)}
       </div>
@@ -306,7 +332,7 @@ function PresentationDuration({ timer, now }: { timer: Timer; now: Temporal.Inst
 
 function EmptyPresentation() {
   return (
-    <main className="grid min-h-screen place-items-center bg-[#050b13] px-6 text-center text-white">
+    <main className="grid min-h-dvh h-auto place-items-center overflow-x-hidden overflow-y-auto bg-[#050b13] px-6 text-center text-white sm:h-dvh sm:min-h-0 sm:overflow-hidden">
       <div>
         <p className="font-mono text-xs uppercase tracking-[0.26em] text-cyan-300">Presentation View</p>
         <h1 className="mt-5 font-serif text-5xl leading-none sm:text-7xl">The screen is ready.</h1>
