@@ -5,6 +5,7 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PresentationPage } from './PresentationPage'
+import { SLIDE_DURATION_MS } from '../features/timers/presentation.constants'
 import {
   LocalStorageTimerRepository,
 } from '../infrastructure/storage/LocalStorageTimerRepository'
@@ -38,8 +39,9 @@ class MemoryStorage implements Storage {
 }
 
 const NOW = Temporal.Instant.from('2024-01-01T00:00:00Z')
+type RepositoryTimer = Parameters<LocalStorageTimerRepository['create']>[0]
 
-function counter(id: string, position: number): Parameters<LocalStorageTimerRepository['create']>[0] {
+function counter(id: string, position: number): Extract<RepositoryTimer, { type: 'counter' }> {
   return {
     id,
     title: id,
@@ -52,7 +54,7 @@ function counter(id: string, position: number): Parameters<LocalStorageTimerRepo
   }
 }
 
-function countdown(id: string): Parameters<LocalStorageTimerRepository['create']>[0] {
+function countdown(id: string): Extract<RepositoryTimer, { type: 'countdown' }> {
   return {
     id,
     title: id,
@@ -140,7 +142,7 @@ describe('PresentationPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Pausar presentación' }))
     await act(async () => {
-      vi.advanceTimersByTime(3000)
+      vi.advanceTimersByTime(SLIDE_DURATION_MS)
     })
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reanudar presentación' })).toBeInTheDocument()
@@ -169,6 +171,51 @@ describe('PresentationPage', () => {
 
     expect(screen.getByText('Llegó el momento')).toBeInTheDocument()
     expect(screen.queryByText('Estado')).not.toBeInTheDocument()
+  })
+
+  it('does not reserve an empty calendar row for recent counters', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({
+      ...counter('Recent counter', 0),
+      startAt: Temporal.Now.instant().subtract({ seconds: 30 }).toString(),
+    })
+    renderPresentation(repository)
+    await flushLoading()
+
+    expect(screen.queryByRole('group', { name: 'Fecha' })).not.toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Hora' })).toBeInTheDocument()
+  })
+
+  it('hides controls after inactivity and reveals them on touch', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create(counter('Touch controls', 0))
+    renderPresentation(repository)
+    await flushLoading()
+
+    const pauseButton = screen.getByRole('button', { name: 'Pausar presentación' })
+    const controlsBar = pauseButton.parentElement?.parentElement?.parentElement
+    expect(controlsBar).toHaveClass('opacity-100')
+
+    await act(async () => {
+      vi.advanceTimersByTime(SLIDE_DURATION_MS)
+    })
+    expect(controlsBar).toHaveClass('opacity-0')
+
+    fireEvent.pointerDown(screen.getByRole('main'))
+    expect(controlsBar).toHaveClass('opacity-100')
+  })
+
+  it('allows mobile scrolling while keeping larger viewports locked', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create(counter('Responsive scroll', 0))
+    renderPresentation(repository)
+    await flushLoading()
+
+    const main = screen.getByRole('main')
+    const content = screen.getByRole('heading', { name: 'Responsive scroll' }).parentElement?.parentElement
+
+    expect(main).toHaveClass('overflow-y-auto', 'overflow-x-hidden', 'sm:overflow-hidden')
+    expect(content).toHaveClass('relative', 'overflow-visible', 'sm:absolute', 'sm:overflow-hidden')
   })
 
   it('uses Fullscreen API and exits fullscreen with Escape', async () => {
