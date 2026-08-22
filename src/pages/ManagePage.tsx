@@ -17,6 +17,8 @@ export function ManagePage({ repository }: ManagePageProps) {
   const [now, setNow] = useState(() => Temporal.Now.instant())
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ timer: Timer | null; open: boolean }>({ timer: null, open: false })
+  const [restartConfirm, setRestartConfirm] = useState<{ timer: Timer | null; open: boolean }>({ timer: null, open: false })
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Temporal.Now.instant()), 1000)
@@ -29,26 +31,30 @@ export function ManagePage({ repository }: ManagePageProps) {
   }
 
   async function handleDelete(timer: Timer) {
-    if (!window.confirm(`¿Eliminar "${timer.title}"?`)) {
-      return
-    }
+    setDeleteConfirm({ timer, open: true })
+  }
 
+  async function confirmDelete() {
+    const timer = deleteConfirm.timer
+    setDeleteConfirm({ timer: null, open: false })
     try {
       setActionError(null)
-      await remove(timer.id)
+      await remove(timer!.id)
     } catch {
       setActionError('No se pudo eliminar el timer.')
     }
   }
 
   async function handleRestart(timer: Timer) {
-    if (!window.confirm(`¿Reiniciar "${timer.title}" ahora?`)) {
-      return
-    }
+    setRestartConfirm({ timer, open: true })
+  }
 
+  async function confirmRestart() {
+    const timer = restartConfirm.timer
+    setRestartConfirm({ timer: null, open: false })
     try {
       setActionError(null)
-      await restart(timer.id)
+      await restart(timer!.id)
     } catch {
       setActionError('No se pudo reiniciar el timer.')
     }
@@ -148,6 +154,64 @@ export function ManagePage({ repository }: ManagePageProps) {
           </section>
         </div>
       ) : null}
+
+      {/* Modal confirmar eliminación - estilo danger/rojo */}
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-[#020a12]/90 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteConfirm({ timer: null, open: false }) }}>
+          <section className="w-full max-w-md rounded-[2rem] border border-red-300/30 bg-[#1a0b0d] p-6 shadow-2xl shadow-red-950/30" role="alertdialog" aria-modal="true" aria-labelledby="delete-title">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-red-300/20 text-red-200 font-mono text-lg">✕</span>
+              <h2 id="delete-title" className="font-serif text-xl text-white">Eliminar timer</h2>
+            </div>
+            <p className="text-sm text-slate-300 mb-6">¿Eliminar <span className="font-medium text-white">"{deleteConfirm.timer?.title}"</span>? Esta acción no se puede deshacer.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm({ timer: null, open: false })}
+                className="min-h-10 rounded-full border border-white/10 px-5 text-sm font-semibold uppercase tracking-wider text-slate-400 transition hover:border-white/30 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="min-h-10 rounded-full bg-red-300 px-5 text-sm font-bold uppercase tracking-wider text-[#07111f] transition hover:bg-red-200 focus-visible:outline-2 focus-visible:outline-red-200"
+              >
+                Eliminar
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Modal confirmar reinicio - estilo primary/cian */}
+      {restartConfirm.open && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-[#020a12]/90 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRestartConfirm({ timer: null, open: false }) }}>
+          <section className="w-full max-w-md rounded-[2rem] border border-cyan-300/30 bg-[#0a1420] p-6 shadow-2xl shadow-cyan-950/30" role="alertdialog" aria-modal="true" aria-labelledby="restart-title">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-cyan-300/20 text-cyan-200 font-mono text-lg">↻</span>
+              <h2 id="restart-title" className="font-serif text-xl text-white">Reiniciar counter</h2>
+            </div>
+            <p className="text-sm text-slate-300 mb-6">¿Reiniciar <span className="font-medium text-white">"{restartConfirm.timer?.title}"</span> ahora? El tiempo volverá a cero.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setRestartConfirm({ timer: null, open: false })}
+                className="min-h-10 rounded-full border border-white/10 px-5 text-sm font-semibold uppercase tracking-wider text-slate-400 transition hover:border-white/30 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmRestart}
+                className="min-h-10 rounded-full bg-cyan-300 px-5 text-sm font-bold uppercase tracking-wider text-[#07111f] transition hover:bg-cyan-200 focus-visible:outline-2 focus-visible:outline-cyan-200"
+              >
+                Reiniciar
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   )
 }

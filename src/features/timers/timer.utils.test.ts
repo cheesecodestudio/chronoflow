@@ -5,6 +5,8 @@ import {
   calculateElapsed,
   calculateRemaining,
   formatDuration,
+  formatDurationManage,
+  formatDurationPresent,
   isCountdownCompleted,
   localDateTimeToInstant,
   validateTimerDraft,
@@ -209,5 +211,71 @@ describe('timer draft validation', () => {
       'invalid_time_zone',
       'invalid_target_at',
     ])
+  })
+})
+
+describe('formatDurationManage', () => {
+  it('formats all units when all have values', () => {
+    const duration = Temporal.Duration.from({ years: 1, months: 2, days: 3, hours: 4, minutes: 5, seconds: 6 })
+    expect(formatDurationManage(duration)).toBe('1A:2M:3D:4H:5MIN:6SEG')
+  })
+
+  it('omits years and months when zero', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 3, hours: 4, minutes: 5, seconds: 6 })
+    expect(formatDurationManage(duration)).toBe('3D:4H:5MIN:6SEG')
+  })
+
+  it('omits days and hours when zero', () => {
+    const duration = Temporal.Duration.from({ years: 1, months: 2, days: 0, hours: 0, minutes: 5, seconds: 6 })
+    expect(formatDurationManage(duration)).toBe('1A:2M:5MIN:6SEG')
+  })
+
+  it('always shows minutes and seconds even when zero', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 })
+    expect(formatDurationManage(duration)).toBe('0MIN:0SEG')
+  })
+
+  it('handles single unit values', () => {
+    const duration = Temporal.Duration.from({ years: 1, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 })
+    expect(formatDurationManage(duration)).toBe('1A:0MIN:0SEG')
+  })
+})
+
+describe('formatDurationPresent', () => {
+  it('returns two blocks with correct units', () => {
+    const duration = Temporal.Duration.from({ years: 1, months: 2, days: 3, hours: 4, minutes: 5, seconds: 6 })
+    const result = formatDurationPresent(duration)
+
+    expect(result.block1).toHaveLength(3)
+    expect(result.block1[0]).toEqual({ label: 'AÑOS', value: 1, visible: true })
+    expect(result.block1[1]).toEqual({ label: 'MESES', value: 2, visible: true })
+    expect(result.block1[2]).toEqual({ label: 'DÍAS', value: 3, visible: true })
+
+    expect(result.block2).toHaveLength(3)
+    expect(result.block2[0]).toEqual({ label: 'HORAS', value: 4, visible: true })
+    expect(result.block2[1]).toEqual({ label: 'MINUTOS', value: 5, visible: true })
+    expect(result.block2[1]).toEqual({ label: 'MINUTOS', value: 5, visible: true })
+    expect(result.block2[2]).toEqual({ label: 'SEGUNDOS', value: 6, visible: true })
+  })
+
+  it('hides block1 units when value is zero', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 2, days: 0, hours: 4, minutes: 5, seconds: 6 })
+    const result = formatDurationPresent(duration)
+
+    expect(result.block1[0].visible).toBe(false)
+    expect(result.block1[1].visible).toBe(true)
+    expect(result.block1[2].visible).toBe(false)
+  })
+
+  it('always shows block2 units as visible', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 })
+    const result = formatDurationPresent(duration)
+
+    expect(result.block2[0].visible).toBe(true)
+    expect(result.block2[1].visible).toBe(true)
+    expect(result.block2[2].visible).toBe(true)
+    expect(result.block2[0].value).toBe(0)
+    expect(result.block2[1].value).toBe(0)
+    expect(result.block2[2].value).toBe(0)
   })
 })

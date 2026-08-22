@@ -4,7 +4,7 @@ import type { Timer } from '../features/timers/timer.types'
 import {
   calculateElapsed,
   calculateRemaining,
-  formatDuration,
+  formatDurationManage,
   isCountdownCompleted,
 } from '../features/timers/timer.utils'
 
@@ -19,10 +19,10 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
   const isCounter = timer.type === 'counter'
   const completed = !isCounter && isCountdownCompleted(timer, now)
   const duration = isCounter
-    ? formatDuration(calculateElapsed(timer, now))
+    ? formatDurationManage(calculateElapsed(timer, now))
     : completed
       ? 'Llegó el momento'
-      : formatDuration(calculateRemaining(timer, now))
+      : formatDurationManage(calculateRemaining(timer, now))
 
   return (
     <article className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#101e2c]/90 p-6 shadow-xl shadow-[#020a12]/25 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:shadow-cyan-950/30">
@@ -46,7 +46,7 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
         <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-slate-500">
           {isCounter ? 'Tiempo transcurrido' : completed ? 'Estado' : 'Tiempo restante'}
         </p>
-        <p className={`mt-2 text-3xl tracking-tight ${completed ? 'font-serif text-amber-200' : 'font-mono text-cyan-100'}`}>
+        <p className={`mt-2 text-lg tracking-tight font-mono ${completed ? 'text-amber-200' : 'text-cyan-100'}`}>
           {duration}
         </p>
         <p className="mt-3 text-xs text-slate-500">{timer.timeZone}</p>

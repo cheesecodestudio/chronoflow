@@ -4,7 +4,7 @@ import { Temporal } from 'temporal-polyfill'
 
 import type { Timer } from '../features/timers/timer.types'
 import type { TimerRepository } from '../features/timers/timer.repository'
-import { calculateElapsed, calculateRemaining, formatDuration, isCountdownCompleted } from '../features/timers/timer.utils'
+import { calculateElapsed, calculateRemaining, formatDurationPresent, isCountdownCompleted, type DurationPresentBlock } from '../features/timers/timer.utils'
 import { FADE_DURATION_MS, SLIDE_DURATION_MS } from '../features/timers/presentation.constants'
 import { useTimers } from '../features/timers/useTimers'
 
@@ -222,20 +222,84 @@ export function PresentationPage({ repository }: PresentationPageProps) {
 
 function PresentationDuration({ timer, now }: { timer: Timer; now: Temporal.Instant }) {
   const completed = timer.type === 'countdown' && isCountdownCompleted(timer, now)
-  const duration = timer.type === 'counter'
-    ? formatDuration(calculateElapsed(timer, now))
+  const durationData = timer.type === 'counter'
+    ? formatDurationPresent(calculateElapsed(timer, now))
     : completed
-      ? 'Llegó el momento'
-      : formatDuration(calculateRemaining(timer, now))
+      ? null
+      : formatDurationPresent(calculateRemaining(timer, now))
+
+  if (completed) {
+    return (
+      <div className="mt-16" aria-live="polite">
+        <p className="font-serif text-4xl sm:text-6xl text-amber-100 tracking-tight">
+          Llegó el momento
+        </p>
+      </div>
+    )
+  }
+
+  if (!durationData) {
+    return null
+  }
+
+  const renderBlock = (blocks: DurationPresentBlock[], isFirstBlock: boolean) => (
+    <div key={isFirstBlock ? 'block1' : 'block2'} className="flex flex-col items-center gap-4">
+      <div className="flex items-end gap-6 sm:gap-10" role="group" aria-label={isFirstBlock ? 'Fecha' : 'Hora'}>
+        {blocks
+          .filter((b) => b.visible)
+          .map((block) => {
+            const progress = Math.min(block.value, 59) / 59
+            const dashoffset = 283 - 283 * progress
+            return (
+              <div key={block.label} className="flex flex-col items-center gap-3">
+                <div className="relative flex h-32 w-32 sm:h-36 sm:w-36 lg:h-40 lg:w-40 items-center justify-center" aria-hidden="true">
+                  <svg className="h-full w-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeDasharray="283"
+                      strokeDashoffset="283"
+                      className="text-white/10"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeDasharray="283"
+                      strokeDashoffset={dashoffset}
+                      className={isFirstBlock ? 'text-cyan-300' : 'text-amber-300'}
+                      strokeLinecap="round"
+                      style={{ filter: 'drop-shadow(0 0 2px currentColor)' }}
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center font-mono text-3xl sm:text-4xl lg:text-5xl font-bold tabular-nums text-white">
+                    {String(block.value).padStart(2, '0')}
+                  </span>
+                </div>
+                <span className="font-mono text-xs uppercase tracking-[0.2em] text-slate-400">{block.label}</span>
+              </div>
+            )
+          })}
+      </div>
+    </div>
+  )
 
   return (
     <div className="mt-16" aria-live="polite">
-      <p className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-slate-500">
-        {timer.type === 'counter' ? 'Tiempo transcurrido' : completed ? 'Estado' : 'Tiempo restante'}
+      <p className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-slate-500 mb-8">
+        {timer.type === 'counter' ? 'Tiempo transcurrido' : 'Tiempo restante'}
       </p>
-      <p className={`mt-5 text-4xl tracking-tight sm:text-6xl ${completed ? 'font-serif text-amber-100' : 'font-mono text-cyan-100'}`}>
-        {duration}
-      </p>
+      <div className="flex flex-col items-center gap-12">
+        {renderBlock(durationData.block1, true)}
+        {renderBlock(durationData.block2, false)}
+      </div>
     </div>
   )
 }

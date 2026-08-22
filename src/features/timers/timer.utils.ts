@@ -109,6 +109,74 @@ export function formatDuration(duration: Temporal.Duration): string {
   return parts.length > 0 ? parts.join(' ') : '0 segundos'
 }
 
+export function formatDurationManage(duration: Temporal.Duration): string {
+  const units = [
+    { unit: 'years' as const, label: 'A' },
+    { unit: 'months' as const, label: 'M' },
+    { unit: 'days' as const, label: 'D' },
+    { unit: 'hours' as const, label: 'H' },
+    { unit: 'minutes' as const, label: 'MIN' },
+    { unit: 'seconds' as const, label: 'SEG' },
+  ]
+
+  const parts = units
+    .map(({ unit, label }) => {
+      const value = Math.trunc(duration[unit])
+
+      if (unit === 'minutes' || unit === 'seconds') {
+        return `${value}${label}`
+      }
+
+      if (value === 0) {
+        return null
+      }
+
+      return `${value}${label}`
+    })
+    .filter((part): part is string => part !== null)
+
+  return parts.length > 0 ? parts.join(':') : '0MIN:0SEG'
+}
+
+export interface DurationPresentBlock {
+  label: string
+  value: number
+  visible: boolean
+}
+
+export interface DurationPresentData {
+  block1: DurationPresentBlock[]
+  block2: DurationPresentBlock[]
+}
+
+export function formatDurationPresent(duration: Temporal.Duration): DurationPresentData {
+  const block1Units: Array<{ unit: keyof DurationParts; label: string }> = [
+    { unit: 'years', label: 'AÑOS' },
+    { unit: 'months', label: 'MESES' },
+    { unit: 'days', label: 'DÍAS' },
+  ]
+
+  const block2Units: Array<{ unit: keyof DurationParts; label: string }> = [
+    { unit: 'hours', label: 'HORAS' },
+    { unit: 'minutes', label: 'MINUTOS' },
+    { unit: 'seconds', label: 'SEGUNDOS' },
+  ]
+
+  const block1 = block1Units.map(({ unit, label }) => ({
+    label,
+    value: Math.trunc(duration[unit]),
+    visible: Math.trunc(duration[unit]) > 0,
+  }))
+
+  const block2 = block2Units.map(({ unit, label }) => ({
+    label,
+    value: Math.trunc(duration[unit]),
+    visible: true,
+  }))
+
+  return { block1, block2 }
+}
+
 export function isCountdownCompleted(
   timer: Extract<Timer, { type: 'countdown' }>,
   now: Temporal.Instant = Temporal.Now.instant(),

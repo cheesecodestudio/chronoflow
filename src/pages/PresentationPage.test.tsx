@@ -105,7 +105,7 @@ describe('PresentationPage', () => {
     expect(screen.getByRole('link', { name: 'Ir a Manage View' })).toHaveAttribute('href', '/manage')
   })
 
-  it('advances automatically and loops from the last timer to the first', async () => {
+  it('advances manually and loops from the last timer to the first', async () => {
     const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
     await repository.create(counter('First', 0))
     await repository.create(counter('Second', 1))
@@ -114,16 +114,17 @@ describe('PresentationPage', () => {
 
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
 
-    // Auto-advance fires after 3000ms, then transition takes 560ms (280+280)
+    // Navegación manual: siguiente
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente timer' }))
     await act(async () => {
-      vi.advanceTimersByTime(3000) // wait for auto-advance trigger
-      vi.advanceTimersByTime(280)  // fade-out
-      vi.advanceTimersByTime(280)  // fade-in
+      vi.advanceTimersByTime(280)
+      vi.advanceTimersByTime(280)
     })
     expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument()
 
+    // Loop: siguiente desde el último vuelve al primero
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente timer' }))
     await act(async () => {
-      vi.advanceTimersByTime(3000)
       vi.advanceTimersByTime(280)
       vi.advanceTimersByTime(280)
     })
@@ -167,7 +168,7 @@ describe('PresentationPage', () => {
     await flushLoading()
 
     expect(screen.getByText('Llegó el momento')).toBeInTheDocument()
-    expect(screen.getByText('Estado')).toBeInTheDocument()
+    expect(screen.queryByText('Estado')).not.toBeInTheDocument()
   })
 
   it('uses Fullscreen API and exits fullscreen with Escape', async () => {
