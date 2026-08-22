@@ -32,14 +32,11 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
       ? 'Llegó el momento'
       : formatDurationManage(calculateRemaining(countdownTimer, now))
 
-  const elapsed = calculateElapsed(counterTimer, now)
-  const remaining = calculateRemaining(countdownTimer, now)
-
   const durationParts = isCounter
-    ? formatDurationManageParts(elapsed, showSeconds)
+    ? formatDurationManageParts(calculateElapsed(counterTimer, now), showSeconds)
     : completed
       ? []
-      : formatDurationManageParts(remaining, showSeconds)
+      : formatDurationManageParts(calculateRemaining(countdownTimer, now), showSeconds)
 
   return (
     <article className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#101e2c]/90 p-6 shadow-xl shadow-[#020a12]/25 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:shadow-cyan-950/30">

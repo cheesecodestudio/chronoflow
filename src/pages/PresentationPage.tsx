@@ -6,7 +6,7 @@ import { AppIcon } from '../components/AppIcon'
 import type { Timer } from '../features/timers/timer.types'
 import type { TimerRepository } from '../features/timers/timer.repository'
 import { calculateElapsed, calculateRemaining, formatDurationPresent, isCountdownCompleted, type DurationPresentBlock } from '../features/timers/timer.utils'
-import { FADE_DURATION_MS, getSlideDurationMs } from '../features/timers/presentation.constants'
+import { FADE_DURATION_MS, SLIDE_DURATION_MS } from '../features/timers/presentation.constants'
 import { useTimers } from '../features/timers/useTimers'
 import { useSettings } from '../features/timers/SettingsContext'
 
@@ -67,14 +67,14 @@ export function PresentationPage({ repository }: PresentationPageProps) {
     controlsTimeout.current = window.setTimeout(() => {
       setAreControlsVisible(false)
       controlsTimeout.current = null
-    }, getSlideDurationMs())
+    }, SLIDE_DURATION_MS)
   }, [])
 
   useEffect(() => {
     controlsTimeout.current = window.setTimeout(() => {
       setAreControlsVisible(false)
       controlsTimeout.current = null
-    }, getSlideDurationMs())
+    }, SLIDE_DURATION_MS)
   }, [])
 
   useEffect(() => {
@@ -82,9 +82,8 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       return
     }
 
-    const duration = getSlideDurationMs()
-    const interval = window.setInterval(() => moveTimer(1), duration)
-    return () => window.clearInterval(interval)
+    const interval = window.setTimeout(() => moveTimer(1), SLIDE_DURATION_MS)
+    return () => window.clearTimeout(interval)
   }, [isPaused, moveTimer, timers.length, currentIndex])
 
   useEffect(() => {
