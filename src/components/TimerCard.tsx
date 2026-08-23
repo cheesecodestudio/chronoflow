@@ -22,21 +22,16 @@ export function TimerCard({ timer, now, onDelete, onRestart }: TimerCardProps) {
   const { showSeconds } = useSettings()
   const isCounter = timer.type === 'counter'
   const completed = !isCounter && isCountdownCompleted(timer, now)
-
-  const counterTimer = timer as Extract<Timer, { type: 'counter' }>
-  const countdownTimer = timer as Extract<Timer, { type: 'countdown' }>
-
   const duration = isCounter
-    ? formatDurationManage(calculateElapsed(counterTimer, now))
+    ? formatDurationManage(calculateElapsed(timer, now))
     : completed
       ? 'Llegó el momento'
-      : formatDurationManage(calculateRemaining(countdownTimer, now))
-
+      : formatDurationManage(calculateRemaining(timer, now))
   const durationParts = isCounter
-    ? formatDurationManageParts(calculateElapsed(counterTimer, now), showSeconds)
+    ? formatDurationManageParts(calculateElapsed(timer, now), showSeconds)
     : completed
       ? []
-      : formatDurationManageParts(calculateRemaining(countdownTimer, now), showSeconds)
+      : formatDurationManageParts(calculateRemaining(timer, now), showSeconds)
 
   return (
     <article className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#101e2c]/90 p-6 shadow-xl shadow-[#020a12]/25 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:shadow-cyan-950/30">
