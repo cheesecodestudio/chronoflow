@@ -40,6 +40,12 @@ class MemoryStorage implements Storage {
   }
 }
 
+class FailingCustomizationRepository extends LocalStorageTimerRepository {
+  override async updateCustomization(): Promise<never> {
+    throw new Error('Storage unavailable')
+  }
+}
+
 const NOW = Temporal.Instant.from('2024-01-01T00:00:00Z')
 
 function renderManage(repository: LocalStorageTimerRepository) {
@@ -142,12 +148,130 @@ describe('ManagePage', () => {
     renderManage(repository)
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo timer' }))
+    expect(screen.getByRole('radio', { name: 'Azul' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Reloj' })).toBeChecked()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'No tomar café' } })
     fireEvent.click(screen.getByRole('button', { name: 'Crear timer' }))
 
     expect(await screen.findByText('No tomar café')).toBeInTheDocument()
     expect(screen.getByText('Counter')).toBeInTheDocument()
     expect(screen.getAllByText('01')).toHaveLength(2)
+    expect(await repository.getById((await repository.getAll())[0]!.id)).toMatchObject({
+      accent: 'blue',
+      icon: 'clock',
+    })
+  })
+
+  it('creates a timer with the selected visual customization', async () => {
+    const storage = new MemoryStorage()
+    const repository = new LocalStorageTimerRepository(storage, () => NOW)
+    renderManage(repository)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo timer' }))
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Deep work' } })
+    fireEvent.click(screen.getByRole('radio', { name: 'Morado' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Enfoque' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear timer' }))
+
+    expect(await screen.findByText('Deep work')).toBeInTheDocument()
+    expect(screen.getByText('Acento Morado, icono Enfoque.')).toBeInTheDocument()
+    expect(await repository.getAll()).toEqual([
+      expect.objectContaining({ accent: 'purple', icon: 'focus' }),
+    ])
+    expect(await new LocalStorageTimerRepository(storage).getAll()).toEqual([
+      expect.objectContaining({ accent: 'purple', icon: 'focus' }),
+    ])
+  })
+
+  it('personalizes an existing timer through the injected repository and restores focus', async () => {
+    const storage = new MemoryStorage()
+    const repository = new LocalStorageTimerRepository(storage, () => NOW)
+    await repository.create({
+      id: 'legacy',
+      title: 'Legacy timer',
+      type: 'counter',
+      timeZone: 'UTC',
+      startAt: '2023-12-31T00:00:00Z',
+      position: 0,
+      createdAt: '2023-12-31T00:00:00Z',
+      updatedAt: '2023-12-31T00:00:00Z',
+    })
+    renderManage(repository)
+
+    const trigger = await screen.findByRole('button', { name: 'Personalizar Legacy timer' })
+    fireEvent.click(trigger)
+
+    expect(screen.getByRole('dialog', { name: 'Personalizar “Legacy timer”' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Azul' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Reloj' })).toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: 'Verde' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Hoja' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar personalización' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Personalizar “Legacy timer”' })).not.toBeInTheDocument()
+    })
+    expect(await repository.getById('legacy')).toMatchObject({
+      title: 'Legacy timer',
+      startAt: '2023-12-31T00:00:00Z',
+      accent: 'green',
+      icon: 'leaf',
+    })
+    expect(window.localStorage.getItem(TIMER_STORAGE_KEY)).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+    expect(screen.getByText('Acento Verde, icono Hoja.')).toBeInTheDocument()
+  })
+
+  it('closes personalization with Escape without persisting changes', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({
+      id: 'cancel-customization',
+      title: 'Keep blue',
+      type: 'counter',
+      timeZone: 'UTC',
+      startAt: '2023-12-31T00:00:00Z',
+      position: 0,
+      createdAt: NOW.toString(),
+      updatedAt: NOW.toString(),
+      accent: 'blue',
+      icon: 'clock',
+    })
+    renderManage(repository)
+
+    const trigger = await screen.findByRole('button', { name: 'Personalizar Keep blue' })
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('radio', { name: 'Rojo' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(screen.queryByRole('dialog', { name: 'Personalizar “Keep blue”' })).not.toBeInTheDocument()
+    expect(await repository.getById('cancel-customization')).toMatchObject({
+      accent: 'blue',
+      icon: 'clock',
+    })
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  it('keeps personalization open and reports persistence errors', async () => {
+    const repository = new FailingCustomizationRepository(new MemoryStorage(), () => NOW)
+    await repository.create({
+      id: 'failed-customization',
+      title: 'Cannot save',
+      type: 'counter',
+      timeZone: 'UTC',
+      startAt: '2023-12-31T00:00:00Z',
+      position: 0,
+      createdAt: NOW.toString(),
+      updatedAt: NOW.toString(),
+    })
+    renderManage(repository)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Personalizar Cannot save' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar personalización' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No se pudo guardar la personalización. Inténtalo nuevamente.',
+    )
+    expect(screen.getByRole('dialog', { name: 'Personalizar “Cannot save”' })).toBeInTheDocument()
   })
 
   it('creates a countdown and renders its remaining duration', async () => {

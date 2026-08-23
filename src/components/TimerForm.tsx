@@ -1,7 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { Temporal } from 'temporal-polyfill'
 
-import type { TimerDraft, TimerType } from '../features/timers/timer.types'
+import { TimerCustomizationFields } from './TimerCustomizationFields'
+import {
+  DEFAULT_TIMER_ACCENT,
+  DEFAULT_TIMER_ICON,
+} from '../features/timers/timer.customization'
+import type {
+  TimerAccent,
+  TimerDraft,
+  TimerIcon,
+  TimerType,
+} from '../features/timers/timer.types'
 import { detectTimeZone, localDateTimeToInstant } from '../features/timers/timer.utils'
 import { TimerValidationException } from '../features/timers/timer.use-cases'
 
@@ -16,6 +26,8 @@ interface FormState {
   date: string
   time: string
   timeZone: string
+  accent: TimerAccent
+  icon: TimerIcon
 }
 
 function getInitialState(): FormState {
@@ -28,6 +40,8 @@ function getInitialState(): FormState {
     date: now.toPlainDate().toString(),
     time: now.toPlainTime().toString({ smallestUnit: 'minute' }).slice(0, 5),
     timeZone,
+    accent: DEFAULT_TIMER_ACCENT,
+    icon: DEFAULT_TIMER_ICON,
   }
 }
 
@@ -45,8 +59,22 @@ export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
       const instant = localDateTimeToInstant(`${form.date}T${form.time}:00`, form.timeZone)
       const draft: TimerDraft =
         form.type === 'counter'
-          ? { type: 'counter', title: form.title, timeZone: form.timeZone, startAt: instant }
-          : { type: 'countdown', title: form.title, timeZone: form.timeZone, targetAt: instant }
+          ? {
+              type: 'counter',
+              title: form.title,
+              timeZone: form.timeZone,
+              startAt: instant,
+              accent: form.accent,
+              icon: form.icon,
+            }
+          : {
+              type: 'countdown',
+              title: form.title,
+              timeZone: form.timeZone,
+              targetAt: instant,
+              accent: form.accent,
+              icon: form.icon,
+            }
 
       await onSubmit(draft)
       setForm(getInitialState())
@@ -132,6 +160,25 @@ export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
         <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">Zona horaria detectada</p>
         <p className="mt-1 font-mono text-sm text-cyan-100">{form.timeZone}</p>
       </div>
+
+      <section
+        aria-labelledby="new-timer-appearance"
+        className="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4 sm:p-5"
+      >
+        <div className="mb-5">
+          <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-cyan-300/80">
+            Identidad visual
+          </p>
+          <h3 id="new-timer-appearance" className="mt-1 font-serif text-2xl text-white">
+            Hazlo reconocible.
+          </h3>
+        </div>
+        <TimerCustomizationFields
+          value={{ accent: form.accent, icon: form.icon }}
+          disabled={isSubmitting}
+          onChange={(customization) => setForm({ ...form, ...customization })}
+        />
+      </section>
 
       <div className="flex gap-3 pt-2">
         <button

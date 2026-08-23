@@ -131,12 +131,30 @@ describe('PresentationPage', () => {
     await flushLoading()
 
     expect(screen.getByRole('heading', { name: 'Only timer' })).toBeInTheDocument()
+    expect(screen.getByRole('main')).toHaveAttribute('data-timer-accent', 'blue')
+    expect(screen.getByText('Acento Azul, icono Reloj.')).toBeInTheDocument()
 
     await act(async () => {
       vi.advanceTimersByTime(getSlideDurationMs() * 2)
     })
 
     expect(screen.getByRole('heading', { name: 'Only timer' })).toBeInTheDocument()
+  })
+
+  it('renders a persisted customization without changing the timer duration', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({
+      ...counter('Focused timer', 0),
+      accent: 'purple',
+      icon: 'focus',
+    })
+    renderPresentation(repository)
+    await flushLoading()
+
+    expect(screen.getByRole('main')).toHaveAttribute('data-timer-accent', 'purple')
+    expect(screen.getByText('Acento Morado, icono Enfoque.')).toBeInTheDocument()
+    expect(screen.getByText('Tiempo transcurrido')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Hora' })).toBeInTheDocument()
   })
 
   it('advances manually and loops from the last timer to the first', async () => {
