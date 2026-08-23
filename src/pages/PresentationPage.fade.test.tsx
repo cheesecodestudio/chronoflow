@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PresentationPage } from './PresentationPage'
 import { FADE_DURATION_MS } from '../features/timers/presentation.constants'
+import { SettingsProvider } from '../features/timers/SettingsContext'
 import {
   LocalStorageTimerRepository,
 } from '../infrastructure/storage/LocalStorageTimerRepository'
@@ -56,12 +57,14 @@ function counter(id: string, position: number): Extract<RepositoryTimer, { type:
 
 function renderPresentation(repository: LocalStorageTimerRepository) {
   return render(
-    <MemoryRouter initialEntries={['/view']}>
-      <Routes>
-        <Route path="/view" element={<PresentationPage repository={repository} />} />
-        <Route path="/manage" element={<p>Manage destination</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <SettingsProvider>
+      <MemoryRouter initialEntries={['/view']}>
+        <Routes>
+          <Route path="/view" element={<PresentationPage repository={repository} />} />
+          <Route path="/manage" element={<p>Manage destination</p>} />
+        </Routes>
+      </MemoryRouter>
+    </SettingsProvider>,
   )
 }
 
