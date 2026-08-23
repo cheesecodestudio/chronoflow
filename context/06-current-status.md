@@ -98,6 +98,7 @@ La Fase 0 y el MVP 1 están completados. El flujo local crear → persistir → 
 - [x] **MVP-110 completado**: contexto sincronizado, MVP 1 cerrado, MVP 1.1 activo, fade estandarizado en 280 ms con testing, plan de ejecución incorporado al orden de lectura.
 - [x] **MVP-1131 completado**: modal contenedor de configuraciones (MVP-1131) y scrollbars alineados con la estética de Chronoflow (navy/cyan, fallback nativo, forced-colors). Solo en `/manage`, placeholders para MVP-113/114/115, sin lógica funcional ni persistencia. Tests, lint, build y verificación manual validados.
 - [x] **MVP-114 completado**: duración configurable de slides mediante slider 2–60 s, default 5 s, persistencia en `chronoflow:presentation:v1` (2000–60000 ms), cache de Presentation View actualizado al guardar, sin reinicio necesario. Tests, lint, build y verificación manual validados. PR #6 abierto.
+- [x] **MVP-115 cerrado**: personalización visual básica por timer con paleta e iconos cerrados, defaults accesibles, compatibilidad con storage v1 y representación en Manage/Presentation. 113 pruebas, lint, build y verificación manual validados. PR #7 abierto para integración.
 
 ## Entregables del MVP 1.1
 
@@ -106,7 +107,7 @@ La Fase 0 y el MVP 1 están completados. El flujo local crear → persistir → 
 - [x] `MVP-1131`: modal contenedor de configuraciones y scrollbars temáticos.
 - [x] `MVP-113`: mostrar u ocultar segundos.
 - [x] `MVP-114`: duración global configurable, predeterminada en 5 segundos.
-- [ ] `MVP-115`: personalización visual básica.
+- [x] `MVP-115`: personalización visual básica. PR #7 abierto para integración.
 - [ ] `MVP-116`: reordenar timers con alternativa accesible.
 - [ ] `MVP-117`: editar timers, solo si se cumple su gate de entrada.
 - [ ] `MVP-118`: accesibilidad y hardening.
