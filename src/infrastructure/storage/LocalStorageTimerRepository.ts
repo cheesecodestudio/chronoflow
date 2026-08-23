@@ -1,7 +1,12 @@
 import { Temporal } from 'temporal-polyfill'
 
-import type { Timer } from '../../features/timers/timer.types'
+import type { Timer, TimerCustomization } from '../../features/timers/timer.types'
 import type { TimerRepository } from '../../features/timers/timer.repository'
+import {
+  isTimerAccent,
+  isTimerIcon,
+  isValidTimerCustomization,
+} from '../../features/timers/timer.customization'
 
 export const TIMER_STORAGE_KEY = 'chronoflow:timers:v1'
 export const TIMER_STORAGE_VERSION = 1
@@ -72,6 +77,36 @@ export class LocalStorageTimerRepository implements TimerRepository {
     return restartedTimer
   }
 
+  async updateCustomization(
+    id: string,
+    customization: Required<TimerCustomization>,
+  ): Promise<Timer> {
+    if (!isValidTimerCustomization(customization)) {
+      throw new Error('La personalización del timer no es válida.')
+    }
+
+    const timers = await this.getAll()
+    const timerIndex = timers.findIndex((timer) => timer.id === id)
+
+    if (timerIndex === -1) {
+      throw new Error(`No existe un timer con el id ${id}.`)
+    }
+
+    const updatedTimer: Timer = {
+      ...timers[timerIndex],
+      accent: customization.accent,
+      icon: customization.icon,
+      updatedAt: this.now().toString(),
+    }
+
+    assertValidTimer(updatedTimer)
+    const updatedTimers = [...timers]
+    updatedTimers[timerIndex] = updatedTimer
+    this.writeTimers(updatedTimers)
+
+    return updatedTimer
+  }
+
   private readTimers(): Timer[] {
     const raw = this.storage.getItem(TIMER_STORAGE_KEY)
 
@@ -86,7 +121,9 @@ export class LocalStorageTimerRepository implements TimerRepository {
         throw new InvalidTimerStorageError()
       }
 
-      return parsed.timers.filter(isTimer)
+      return parsed.timers
+        .map(sanitizeStoredTimer)
+        .filter((timer): timer is Timer => timer !== null)
     } catch (error) {
       if (error instanceof InvalidTimerStorageError) {
         throw error
@@ -130,6 +167,22 @@ function isStorageEnvelope(value: unknown): value is TimerStorageEnvelope {
   return candidate.version === TIMER_STORAGE_VERSION && Array.isArray(candidate.timers)
 }
 
+function sanitizeStoredTimer(value: unknown): Timer | null {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  const candidate = value as Record<string, unknown>
+  const { accent, icon, ...timerFields } = candidate
+  const sanitized = {
+    ...timerFields,
+    ...(isTimerAccent(accent) ? { accent } : {}),
+    ...(isTimerIcon(icon) ? { icon } : {}),
+  }
+
+  return isTimer(sanitized) ? sanitized : null
+}
+
 function isTimer(value: unknown): value is Timer {
   if (!value || typeof value !== 'object') {
     return false
@@ -150,6 +203,14 @@ function isTimer(value: unknown): value is Timer {
   }
 
   if (!isInstant(candidate.createdAt) || !isInstant(candidate.updatedAt) || !isTimeZone(candidate.timeZone)) {
+    return false
+  }
+
+  if (candidate.accent !== undefined && !isTimerAccent(candidate.accent)) {
+    return false
+  }
+
+  if (candidate.icon !== undefined && !isTimerIcon(candidate.icon)) {
     return false
   }
 

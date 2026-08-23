@@ -1,6 +1,11 @@
 import { Temporal } from 'temporal-polyfill'
 
-import type { Timer, TimerDraft, TimerValidationError } from './timer.types'
+import type { Timer, TimerCustomization, TimerDraft, TimerValidationError } from './timer.types'
+import {
+  DEFAULT_TIMER_ACCENT,
+  DEFAULT_TIMER_ICON,
+  isValidTimerCustomization,
+} from './timer.customization'
 import { normalizeTitle, validateTimerDraft } from './timer.utils'
 import type { TimerRepository } from './timer.repository'
 
@@ -40,6 +45,8 @@ export async function createTimer(
     position: nextPosition(timers),
     createdAt: timestamp,
     updatedAt: timestamp,
+    accent: draft.accent ?? DEFAULT_TIMER_ACCENT,
+    icon: draft.icon ?? DEFAULT_TIMER_ICON,
   }
 
   const timer: Timer =
@@ -48,6 +55,18 @@ export async function createTimer(
       : { ...base, type: 'countdown', targetAt: draft.targetAt }
 
   return repository.create(timer)
+}
+
+export async function updateTimerCustomization(
+  repository: TimerRepository,
+  id: string,
+  customization: Required<TimerCustomization>,
+): Promise<Timer> {
+  if (!isValidTimerCustomization(customization)) {
+    throw new Error('La personalización del timer no es válida.')
+  }
+
+  return repository.updateCustomization(id, customization)
 }
 
 export function nextPosition(timers: Timer[]): number {
