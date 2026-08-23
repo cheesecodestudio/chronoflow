@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Temporal } from 'temporal-polyfill'
 
 import { AppIcon } from '../components/AppIcon'
+import { CustomizeTimerModal } from '../components/CustomizeTimerModal'
 import { TimerCard } from '../components/TimerCard'
 import { TimerForm } from '../components/TimerForm'
-import type { Timer, TimerDraft } from '../features/timers/timer.types'
+import type { Timer, TimerCustomization, TimerDraft } from '../features/timers/timer.types'
 import type { TimerRepository } from '../features/timers/timer.repository'
 import { useTimers } from '../features/timers/useTimers'
 import { SettingsModal } from '../components/SettingsModal'
@@ -16,14 +17,19 @@ interface ManagePageProps {
 }
 
 export function ManagePage({ repository }: ManagePageProps) {
-  const { timers, isLoading, error, create, remove, restart, reload } = useTimers(repository)
+  const { timers, isLoading, error, create, remove, restart, updateCustomization, reload } = useTimers(repository)
   const [now, setNow] = useState(() => Temporal.Now.instant())
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ timer: Timer | null; open: boolean }>({ timer: null, open: false })
   const [restartConfirm, setRestartConfirm] = useState<{ timer: Timer | null; open: boolean }>({ timer: null, open: false })
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [customizeTarget, setCustomizeTarget] = useState<{
+    timer: Timer
+    trigger: HTMLButtonElement
+  } | null>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
+  const closeCustomization = useCallback(() => setCustomizeTarget(null), [])
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Temporal.Now.instant()), 1000)
@@ -63,6 +69,16 @@ export function ManagePage({ repository }: ManagePageProps) {
     } catch {
       setActionError('No se pudo reiniciar el timer.')
     }
+  }
+
+  async function handleCustomizationSubmit(
+    customization: Required<TimerCustomization>,
+  ) {
+    if (!customizeTarget) {
+      return
+    }
+
+    await updateCustomization(customizeTarget.timer.id, customization)
   }
 
   const counters = timers.filter((timer) => timer.type === 'counter').length
@@ -176,6 +192,7 @@ export function ManagePage({ repository }: ManagePageProps) {
                 now={now}
                 onDelete={handleDelete}
                 onRestart={handleRestart}
+                onCustomize={(timer, trigger) => setCustomizeTarget({ timer, trigger })}
               />
             ))}
           </section>
@@ -192,6 +209,15 @@ export function ManagePage({ repository }: ManagePageProps) {
       ) : null}
 
       {isSettingsOpen ? <SettingsModal onClose={closeSettings} returnFocusRef={settingsTriggerRef} /> : null}
+
+      {customizeTarget ? (
+        <CustomizeTimerModal
+          timer={customizeTarget.timer}
+          returnFocusTo={customizeTarget.trigger}
+          onSubmit={handleCustomizationSubmit}
+          onClose={closeCustomization}
+        />
+      ) : null}
 
       {/* Modal confirmar eliminación - estilo danger/rojo */}
       {deleteConfirm.open && (
