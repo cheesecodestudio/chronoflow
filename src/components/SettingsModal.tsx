@@ -114,7 +114,9 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-slate-500">MVP-113</p>
-                  <p className="mt-1 text-sm font-medium text-slate-200">Mostrar u ocultar segundos</p>
+                  <p className="mt-1 text-sm font-medium text-slate-200">
+                    {showSeconds ? 'Ocultar Segundos' : 'Mostrar Segundos'}
+                  </p>
                 </div>
                 <button
                   type="button"
