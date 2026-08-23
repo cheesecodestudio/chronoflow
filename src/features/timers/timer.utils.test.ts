@@ -268,7 +268,7 @@ describe('formatDurationManageParts', () => {
     expect(result[5].visible).toBe(true)
   })
 
-  it('always shows minutes and seconds as visible', () => {
+  it('always shows minutes and seconds as visible by default', () => {
     const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 })
     const result = formatDurationManageParts(duration)
 
@@ -288,6 +288,31 @@ describe('formatDurationManageParts', () => {
     expect(result[3]).toEqual({ value: 0, label: 'H', visible: false })
     expect(result[4]).toEqual({ value: 5, label: 'MIN', visible: true })
     expect(result[5]).toEqual({ value: 0, label: 'SEG', visible: true })
+  })
+
+  it('hides seconds when showSeconds is false', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 0, minutes: 5, seconds: 30 })
+    const result = formatDurationManageParts(duration, false)
+
+    expect(result[4]).toEqual({ value: 5, label: 'MIN', visible: true })
+    expect(result[5]).toEqual({ value: 30, label: 'SEG', visible: false })
+  })
+
+  it('shows seconds when showSeconds is true (explicit)', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 0, minutes: 5, seconds: 30 })
+    const result = formatDurationManageParts(duration, true)
+
+    expect(result[4]).toEqual({ value: 5, label: 'MIN', visible: true })
+    expect(result[5]).toEqual({ value: 30, label: 'SEG', visible: true })
+  })
+
+  it('truncates seconds without rounding when showSeconds is false', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 1, minutes: 59, seconds: 59 })
+    const result = formatDurationManageParts(duration, false)
+
+    expect(result[3]).toEqual({ value: 1, label: 'H', visible: true })
+    expect(result[4]).toEqual({ value: 59, label: 'MIN', visible: true })
+    expect(result[5]).toEqual({ value: 59, label: 'SEG', visible: false })
   })
 })
 
@@ -317,7 +342,7 @@ describe('formatDurationPresent', () => {
     expect(result.block1[2].visible).toBe(false)
   })
 
-  it('always shows block2 units as visible', () => {
+  it('always shows block2 units as visible by default', () => {
     const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 })
     const result = formatDurationPresent(duration)
 
@@ -327,5 +352,32 @@ describe('formatDurationPresent', () => {
     expect(result.block2[0].value).toBe(0)
     expect(result.block2[1].value).toBe(0)
     expect(result.block2[2].value).toBe(0)
+  })
+
+  it('hides seconds in block2 when showSeconds is false', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 1, minutes: 30, seconds: 45 })
+    const result = formatDurationPresent(duration, false)
+
+    expect(result.block2[0]).toEqual({ label: 'HORAS', value: 1, visible: true })
+    expect(result.block2[1]).toEqual({ label: 'MINUTOS', value: 30, visible: true })
+    expect(result.block2[2]).toEqual({ label: 'SEGUNDOS', value: 45, visible: false })
+  })
+
+  it('shows seconds in block2 when showSeconds is true (explicit)', () => {
+    const duration = Temporal.Duration.from({ years: 0, months: 0, days: 0, hours: 1, minutes: 30, seconds: 45 })
+    const result = formatDurationPresent(duration, true)
+
+    expect(result.block2[0]).toEqual({ label: 'HORAS', value: 1, visible: true })
+    expect(result.block2[1]).toEqual({ label: 'MINUTOS', value: 30, visible: true })
+    expect(result.block2[2]).toEqual({ label: 'SEGUNDOS', value: 45, visible: true })
+  })
+
+  it('does not affect block1 visibility when showSeconds is false', () => {
+    const duration = Temporal.Duration.from({ years: 1, months: 0, days: 3, hours: 4, minutes: 5, seconds: 6 })
+    const result = formatDurationPresent(duration, false)
+
+    expect(result.block1[0]).toEqual({ label: 'AÑOS', value: 1, visible: true })
+    expect(result.block1[1]).toEqual({ label: 'MESES', value: 0, visible: false })
+    expect(result.block1[2]).toEqual({ label: 'DÍAS', value: 3, visible: true })
   })
 })

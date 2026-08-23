@@ -170,7 +170,13 @@ export function ManagePage({ repository }: ManagePageProps) {
         ) : (
           <section className="grid gap-5 py-10 md:grid-cols-2 xl:grid-cols-3" aria-label="Timers guardados">
             {timers.map((timer) => (
-              <TimerCard key={timer.id} timer={timer} now={now} onDelete={handleDelete} onRestart={handleRestart} />
+              <TimerCard
+                key={timer.id}
+                timer={timer}
+                now={now}
+                onDelete={handleDelete}
+                onRestart={handleRestart}
+              />
             ))}
           </section>
         )}

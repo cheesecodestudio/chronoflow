@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 
 import { AppIcon } from './AppIcon'
+import { useSettings } from '../features/timers/SettingsContext'
 
 interface SettingsModalProps {
   onClose: () => void
@@ -19,6 +20,7 @@ const focusableSelector = [
 export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const { showSeconds, setShowSeconds } = useSettings()
 
   useEffect(() => {
     closeButtonRef.current?.focus()
@@ -105,7 +107,31 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
               </div>
             </div>
             <div className="mt-5 space-y-3">
-              <PlaceholderCard ticket="MVP-113" title="Mostrar u ocultar segundos" />
+              <div className="flex items-center justify-between">
+<div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-slate-500">MVP-113</p>
+                <p className="mt-1 text-sm font-medium text-slate-200">
+                  {showSeconds ? 'Ocultar Segundos' : 'Mostrar Segundos'}
+                </p>
+              </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showSeconds}
+                  aria-label={showSeconds ? 'Ocultar segundos' : 'Mostrar segundos'}
+                  onClick={() => setShowSeconds(!showSeconds)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-cyan-200 focus-visible:outline-offset-2 ${
+                    showSeconds ? 'bg-cyan-300' : 'bg-white/10'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      showSeconds ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
               <PlaceholderCard ticket="MVP-114" title="Duración configurable de slides" />
             </div>
           </section>

@@ -144,7 +144,7 @@ export interface DurationManagePart {
   visible: boolean
 }
 
-export function formatDurationManageParts(duration: Temporal.Duration): DurationManagePart[] {
+export function formatDurationManageParts(duration: Temporal.Duration, showSeconds: boolean = true): DurationManagePart[] {
   const units: Array<{ unit: keyof DurationParts; label: string; alwaysVisible: boolean }> = [
     { unit: 'years', label: 'A', alwaysVisible: false },
     { unit: 'months', label: 'M', alwaysVisible: false },
@@ -154,11 +154,16 @@ export function formatDurationManageParts(duration: Temporal.Duration): Duration
     { unit: 'seconds', label: 'SEG', alwaysVisible: true },
   ]
 
-  return units.map(({ unit, label, alwaysVisible }) => ({
-    value: Math.trunc(duration[unit]),
-    label,
-    visible: alwaysVisible || Math.trunc(duration[unit]) > 0,
-  }))
+  return units.map(({ unit, label, alwaysVisible }) => {
+    const value = Math.trunc(duration[unit])
+    let visible = alwaysVisible || value > 0
+
+    if (unit === 'seconds' && !showSeconds) {
+      visible = false
+    }
+
+    return { value, label, visible }
+  })
 }
 
 export interface DurationPresentBlock {
@@ -172,7 +177,7 @@ export interface DurationPresentData {
   block2: DurationPresentBlock[]
 }
 
-export function formatDurationPresent(duration: Temporal.Duration): DurationPresentData {
+export function formatDurationPresent(duration: Temporal.Duration, showSeconds: boolean = true): DurationPresentData {
   const block1Units: Array<{ unit: keyof DurationParts; label: string }> = [
     { unit: 'years', label: 'AÑOS' },
     { unit: 'months', label: 'MESES' },
@@ -194,7 +199,7 @@ export function formatDurationPresent(duration: Temporal.Duration): DurationPres
   const block2 = block2Units.map(({ unit, label }) => ({
     label,
     value: Math.trunc(duration[unit]),
-    visible: true,
+    visible: showSeconds || unit !== 'seconds',
   }))
 
   return { block1, block2 }
