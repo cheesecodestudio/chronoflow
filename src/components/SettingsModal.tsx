@@ -136,7 +136,6 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
             <div className="mt-5 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-slate-500">MVP-113</p>
                   <p className="mt-1 text-sm font-medium text-slate-200">
                     {showSeconds ? 'Ocultar Segundos' : 'Mostrar Segundos'}
                   </p>
@@ -198,38 +197,8 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
               </div>
             </div>
            </section>
-          <section aria-labelledby="settings-customization-title" className="rounded-[1.5rem] border border-amber-200/15 bg-amber-200/[0.035] p-5">
-            <div className="flex items-center gap-3">
-              <span aria-hidden="true" className="grid size-9 place-items-center rounded-xl border border-amber-200/20 bg-amber-200/10 font-mono text-sm text-amber-100">02</span>
-              <div>
-                <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-amber-200/70">Visual language</p>
-                <h3 id="settings-customization-title" className="mt-1 font-serif text-2xl text-white">Personalización visual</h3>
-              </div>
-            </div>
-            <div className="mt-5">
-              <PlaceholderCard ticket="MVP-115" title="Personalización visual de timers" />
-            </div>
-          </section>
         </div>
-        <p className="mt-6 border-t border-white/10 pt-5 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-slate-500">
-          Estas secciones se activarán en las próximas tareas del MVP 1.1.
-        </p>
       </div>
-    </div>
-  )
-}
-
-function PlaceholderCard({ ticket, title }: { ticket: string; title: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-white/15 bg-black/10 px-4 py-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-slate-500">{ticket}</p>
-          <p className="mt-1 text-sm font-medium text-slate-200">{title}</p>
-        </div>
-        <span className="shrink-0 rounded-full border border-white/10 px-3 py-1 font-mono text-[0.58rem] uppercase tracking-[0.14em] text-slate-500">Próximamente</span>
-      </div>
-      <p className="mt-3 text-xs leading-5 text-slate-500">Espacio reservado para una configuración futura.</p>
     </div>
   )
 }
