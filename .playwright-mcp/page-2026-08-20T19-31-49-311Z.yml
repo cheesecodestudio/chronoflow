@@ -1,7 +1,0 @@
-- main [ref=e3]:
-  - generic [ref=e4]:
-    - paragraph [ref=e5]: Presentation View
-    - heading "The screen is ready." [level=1] [ref=e6]
-    - paragraph [ref=e7]: Crea un timer desde Manage View para comenzar la secuencia.
-    - link "Ir a Manage View" [ref=e8] [cursor=pointer]:
-      - /url: /manage
