@@ -1,6 +1,15 @@
 export type TimerType = 'counter' | 'countdown'
 
-export interface TimerBase {
+export type TimerAccent = 'blue' | 'green' | 'amber' | 'red' | 'purple' | 'slate'
+
+export type TimerIcon = 'clock' | 'focus' | 'bolt' | 'leaf' | 'book' | 'dumbbell'
+
+export interface TimerCustomization {
+  accent?: TimerAccent
+  icon?: TimerIcon
+}
+
+export interface TimerBase extends TimerCustomization {
   id: string
   title: string
   timeZone: string
@@ -27,12 +36,16 @@ export type TimerDraft =
       title: string
       timeZone: string
       startAt: string
+      accent?: TimerAccent
+      icon?: TimerIcon
     }
   | {
       type: 'countdown'
       title: string
       timeZone: string
       targetAt: string
+      accent?: TimerAccent
+      icon?: TimerIcon
     }
 
 export interface DurationParts {

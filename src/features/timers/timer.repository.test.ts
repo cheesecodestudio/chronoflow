@@ -5,7 +5,11 @@ import {
   LocalStorageTimerRepository,
   TIMER_STORAGE_KEY,
 } from '../../infrastructure/storage/LocalStorageTimerRepository'
-import type { Timer } from './timer.types'
+import type {
+  CountdownTimer,
+  CounterTimer,
+  TimerCustomization,
+} from './timer.types'
 import { createTimer, TimerValidationException } from './timer.use-cases'
 
 class MemoryStorage implements Storage {
@@ -38,7 +42,11 @@ class MemoryStorage implements Storage {
 
 const NOW = Temporal.Instant.from('2024-01-01T00:00:00Z')
 
-function counter(id: string, position: number): Timer {
+function counter(
+  id: string,
+  position: number,
+  customization: TimerCustomization = {},
+): CounterTimer {
   return {
     id,
     title: id,
@@ -48,10 +56,15 @@ function counter(id: string, position: number): Timer {
     position,
     createdAt: '2023-12-31T00:00:00Z',
     updatedAt: '2023-12-31T00:00:00Z',
+    ...customization,
   }
 }
 
-function countdown(id: string, position: number): Timer {
+function countdown(
+  id: string,
+  position: number,
+  customization: TimerCustomization = {},
+): CountdownTimer {
   return {
     id,
     title: id,
@@ -61,6 +74,7 @@ function countdown(id: string, position: number): Timer {
     position,
     createdAt: '2023-12-31T00:00:00Z',
     updatedAt: '2023-12-31T00:00:00Z',
+    ...customization,
   }
 }
 
@@ -96,7 +110,7 @@ describe('LocalStorageTimerRepository', () => {
   it('restarts a counter while preserving its identity and position', async () => {
     const storage = new MemoryStorage()
     const repository = new LocalStorageTimerRepository(storage, () => NOW)
-    const original = counter('counter', 3)
+    const original = counter('counter', 3, { accent: 'purple', icon: 'focus' })
     await repository.create(original)
 
     const restarted = await repository.restart(original.id)
@@ -142,6 +156,56 @@ describe('LocalStorageTimerRepository', () => {
     expect(await repository.getAll()).toEqual([counter('valid', 0)])
   })
 
+  it('keeps legacy timers and sanitizes unknown customization without rewriting storage', async () => {
+    const storage = new MemoryStorage()
+    const legacy = counter('legacy', 0)
+    const raw = JSON.stringify({
+      version: 1,
+      timers: [legacy, { ...countdown('customized', 1), accent: 'teal', icon: 'leaf' }],
+    })
+    storage.setItem(TIMER_STORAGE_KEY, raw)
+
+    const repository = new LocalStorageTimerRepository(storage)
+
+    expect(await repository.getAll()).toEqual([
+      legacy,
+      { ...countdown('customized', 1), icon: 'leaf' },
+    ])
+    expect(storage.getItem(TIMER_STORAGE_KEY)).toBe(raw)
+  })
+
+  it('updates only customization and its timestamp', async () => {
+    const storage = new MemoryStorage()
+    const repository = new LocalStorageTimerRepository(storage, () => NOW)
+    const original = countdown('event', 2)
+    await repository.create(original)
+
+    const updated = await repository.updateCustomization('event', {
+      accent: 'green',
+      icon: 'leaf',
+    })
+
+    expect(updated).toEqual({
+      ...original,
+      accent: 'green',
+      icon: 'leaf',
+      updatedAt: NOW.toString(),
+    })
+    expect(await new LocalStorageTimerRepository(storage).getById('event')).toEqual(updated)
+  })
+
+  it('rejects unknown customization and missing timers', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage())
+
+    await expect(repository.updateCustomization('missing', {
+      accent: 'green',
+      icon: 'leaf',
+    })).rejects.toThrow('No existe un timer')
+    await expect(repository.create(counter('invalid', 0, {
+      accent: 'teal' as never,
+    }))).rejects.toThrow('El timer no tiene un formato válido.')
+  })
+
   it('creates complete entities through the use case', async () => {
     const repository = new LocalStorageTimerRepository(new MemoryStorage())
 
@@ -165,7 +229,30 @@ describe('LocalStorageTimerRepository', () => {
       position: 0,
       createdAt: NOW.toString(),
       updatedAt: NOW.toString(),
+      accent: 'blue',
+      icon: 'clock',
     })
+  })
+
+  it('creates and persists an explicit customization', async () => {
+    const storage = new MemoryStorage()
+    const repository = new LocalStorageTimerRepository(storage)
+
+    const timer = await createTimer(
+      repository,
+      {
+        type: 'counter',
+        title: 'Focus',
+        timeZone: 'UTC',
+        startAt: '2023-12-31T00:00:00Z',
+        accent: 'purple',
+        icon: 'focus',
+      },
+      { now: NOW, createId: () => 'focus-id' },
+    )
+
+    expect(timer).toMatchObject({ accent: 'purple', icon: 'focus' })
+    expect(await new LocalStorageTimerRepository(storage).getById('focus-id')).toEqual(timer)
   })
 
   it('assigns the next position and rejects invalid drafts', async () => {

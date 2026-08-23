@@ -3,7 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Temporal } from 'temporal-polyfill'
 
 import { AppIcon } from '../components/AppIcon'
+import { getTimerAppIconName } from '../components/timerCustomizationIcon'
 import type { Timer } from '../features/timers/timer.types'
+import {
+  getEffectiveTimerCustomization,
+  TIMER_ACCENT_COLORS,
+  TIMER_ACCENT_LABELS,
+  TIMER_ICON_LABELS,
+} from '../features/timers/timer.customization'
 import type { TimerRepository } from '../features/timers/timer.repository'
 import { calculateElapsed, calculateRemaining, formatDurationPresent, isCountdownCompleted, type DurationPresentBlock } from '../features/timers/timer.utils'
 import { FADE_DURATION_MS, getSlideDurationMs } from '../features/timers/presentation.constants'
@@ -179,14 +186,28 @@ export function PresentationPage({ repository }: PresentationPageProps) {
     return <EmptyPresentation />
   }
 
+  const customization = getEffectiveTimerCustomization(currentTimer)
+  const accentColor = TIMER_ACCENT_COLORS[customization.accent]
+
   return (
     <main
       ref={presentationRef}
+      data-timer-accent={customization.accent}
       className="relative h-auto min-h-dvh overflow-x-hidden overflow-y-auto bg-[#050b13] text-white sm:h-dvh sm:min-h-0 sm:overflow-hidden"
       onPointerMove={revealControls}
       onPointerDown={revealControls}
       onFocusCapture={revealControls}
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 w-1 sm:w-1.5"
+        style={{ backgroundColor: accentColor }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-1/2 size-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.08] blur-[130px]"
+        style={{ backgroundColor: accentColor }}
+      />
       <div className="pointer-events-none absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(148,163,184,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.04)_1px,transparent_1px)] [background-size:64px_64px]" />
       <div className="pointer-events-none absolute -left-32 h-96 w-96 rounded-full bg-cyan-400/10 blur-[120px]" />
       <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-amber-300/[0.07] blur-[120px]" />
@@ -204,12 +225,22 @@ export function PresentationPage({ repository }: PresentationPageProps) {
       <div className="relative flex min-h-[calc(100dvh-8.5rem)] w-full items-center justify-center overflow-visible px-3 py-12 sm:absolute sm:inset-x-0 sm:bottom-[6.5rem] sm:top-[5.5rem] sm:min-h-0 sm:w-auto sm:overflow-hidden sm:px-8 sm:py-0 lg:bottom-[7.5rem] lg:top-[6.5rem]">
         <div className={`w-full max-w-6xl text-center transition duration-[${FADE_DURATION_MS}ms] ${transitionPhase !== 'idle' ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
           <div className="flex items-center justify-center gap-2 font-mono text-[0.6rem] uppercase tracking-[0.22em] text-cyan-300 sm:gap-3 sm:text-xs sm:tracking-[0.3em]">
+            <span
+              aria-hidden="true"
+              className="grid size-9 place-items-center rounded-full border border-white/15 bg-white/[0.04] sm:size-11"
+              style={{ color: accentColor }}
+            >
+              <AppIcon name={getTimerAppIconName(customization.icon)} className="size-4 sm:size-5" />
+            </span>
             <span className={`h-2 w-2 rounded-full ${currentTimer.type === 'counter' ? 'bg-cyan-300' : 'bg-amber-300'}`} />
             {currentTimer.type === 'counter' ? 'Counter' : 'Countdown'}
           </div>
           <h1 className={`mx-auto mt-2 max-w-5xl break-words font-serif leading-[0.92] tracking-tight text-white sm:mt-4 lg:mt-5 ${getPresentationTitleSize(currentTimer.title)}`}>
             {currentTimer.title}
           </h1>
+          <p className="sr-only">
+            Acento {TIMER_ACCENT_LABELS[customization.accent]}, icono {TIMER_ICON_LABELS[customization.icon]}.
+          </p>
           <p className="mt-2 font-mono text-[0.55rem] uppercase tracking-[0.14em] text-slate-500 sm:mt-4 sm:text-[0.65rem] sm:tracking-[0.2em] lg:mt-5">{currentTimer.timeZone}</p>
 
           <PresentationDuration timer={currentTimer} now={now} showSeconds={showSeconds} />
