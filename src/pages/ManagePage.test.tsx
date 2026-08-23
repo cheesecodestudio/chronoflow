@@ -9,6 +9,7 @@ import {
   LocalStorageTimerRepository,
   TIMER_STORAGE_KEY,
 } from '../infrastructure/storage/LocalStorageTimerRepository'
+import { SETTINGS_STORAGE_KEY } from '../infrastructure/storage/SettingsStorage'
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>()
@@ -53,6 +54,7 @@ function renderManage(repository: LocalStorageTimerRepository) {
 describe('ManagePage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    window.localStorage.clear()
   })
 
   it('shows the empty state when there are no timers', async () => {
@@ -96,6 +98,25 @@ describe('ManagePage', () => {
 
     fireEvent.click(dialog.parentElement!)
     expect(screen.queryByRole('dialog', { name: 'Configuración' })).not.toBeInTheDocument()
+  })
+
+  it('toggles and restores the seconds preference from local storage', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    const firstRender = renderManage(repository)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
+    const toggle = screen.getByRole('switch', { name: 'Ocultar segundos' })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    fireEvent.click(toggle)
+    expect(screen.getByRole('switch', { name: 'Mostrar segundos' })).toHaveAttribute('aria-checked', 'false')
+    expect(window.localStorage.getItem(SETTINGS_STORAGE_KEY)).toContain('"showSeconds":false')
+
+    firstRender.unmount()
+    renderManage(repository)
+    fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
+
+    expect(screen.getByRole('switch', { name: 'Mostrar segundos' })).toHaveAttribute('aria-checked', 'false')
   })
 
   it('creates a counter from the form', async () => {

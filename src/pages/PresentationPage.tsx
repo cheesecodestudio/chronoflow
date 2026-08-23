@@ -256,11 +256,13 @@ function getPresentationTitleSize(title: string): string {
 
 function PresentationDuration({ timer, now, showSeconds }: { timer: Timer; now: Temporal.Instant; showSeconds: boolean }) {
   const completed = timer.type === 'countdown' && isCountdownCompleted(timer, now)
+  const counterTimer = timer as Extract<Timer, { type: 'counter' }>
+  const countdownTimer = timer as Extract<Timer, { type: 'countdown' }>
   const durationData = timer.type === 'counter'
-    ? formatDurationPresent(calculateElapsed(timer, now), showSeconds)
+    ? formatDurationPresent(calculateElapsed(counterTimer, now), showSeconds)
     : completed
       ? null
-      : formatDurationPresent(calculateRemaining(timer, now), showSeconds)
+      : formatDurationPresent(calculateRemaining(countdownTimer, now), showSeconds)
 
   if (completed) {
     return (
