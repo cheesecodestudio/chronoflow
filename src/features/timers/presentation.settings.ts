@@ -6,6 +6,14 @@ export const MIN_SLIDE_DURATION_MS = 2000
 export const MAX_SLIDE_DURATION_MS = 60000
 export const SLIDE_DURATION_STEP_MS = 1000
 
+export function slideDurationMsToSeconds(value: number): number {
+  return value / SLIDE_DURATION_STEP_MS
+}
+
+export function slideDurationSecondsToMs(value: number): number {
+  return value * SLIDE_DURATION_STEP_MS
+}
+
 export interface PresentationSettings {
   slideDurationMs: number
 }
