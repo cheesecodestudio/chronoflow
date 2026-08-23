@@ -1,7 +1,16 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
 import { AppIcon } from './AppIcon'
-import { readPresentationSettings, writePresentationSettings, getSlideDurationErrorMessage, MIN_SLIDE_DURATION_MS, MAX_SLIDE_DURATION_MS, SLIDE_DURATION_STEP_MS } from '../features/timers/presentation.settings'
+import { setSlideDurationMs } from '../features/timers/presentation.constants'
+import {
+  getSlideDurationErrorMessage,
+  MAX_SLIDE_DURATION_MS,
+  MIN_SLIDE_DURATION_MS,
+  readPresentationSettings,
+  slideDurationMsToSeconds,
+  slideDurationSecondsToMs,
+  writePresentationSettings,
+} from '../features/timers/presentation.settings'
 import { useSettings } from '../features/timers/SettingsContext'
 
 interface SettingsModalProps {
@@ -21,10 +30,29 @@ const focusableSelector = [
 export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const [slideDuration, setSlideDuration] = useState<number>(() => readPresentationSettings().slideDurationMs)
+  const [slideDurationSeconds, setSlideDurationSeconds] = useState<number>(() => slideDurationMsToSeconds(readPresentationSettings().slideDurationMs))
+  const slideDurationSecondsRef = useRef(slideDurationSeconds)
   const [slideDurationError, setSlideDurationError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
   const { showSeconds, setShowSeconds } = useSettings()
+
+  const persistSlideDuration = useCallback(() => {
+    const slideDurationMs = slideDurationSecondsToMs(slideDurationSecondsRef.current)
+    const error = getSlideDurationErrorMessage(slideDurationMs)
+    if (error) {
+      setSlideDurationError(error)
+      return
+    }
+
+    writePresentationSettings({ slideDurationMs })
+    setSlideDurationMs(slideDurationMs)
+    setSlideDurationError(null)
+  }, [])
+
+  const close = useCallback(() => {
+    persistSlideDuration()
+    onClose()
+    returnFocusRef.current?.focus()
+  }, [onClose, persistSlideDuration, returnFocusRef])
 
   useEffect(() => {
     closeButtonRef.current?.focus()
@@ -32,7 +60,7 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        close()
         return
       }
 
@@ -60,12 +88,7 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
-
-  function close() {
-    onClose()
-    returnFocusRef.current?.focus()
-  }
+  }, [close])
 
   return (
     <div
@@ -137,51 +160,44 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
                 </button>
               </div>
               <div className="space-y-2">
-                <label htmlFor="slide-duration" className="block font-mono text-[0.6rem] uppercase tracking-[0.2em] text-slate-400">
-                  Duración por slide (ms)
-                </label>
-                <div className="relative">
-                  <input
-                    ref={inputRef}
-                    id="slide-duration"
-                    type="number"
-                    min={MIN_SLIDE_DURATION_MS}
-                    max={MAX_SLIDE_DURATION_MS}
-                    step={SLIDE_DURATION_STEP_MS}
-                    value={slideDuration}
-                    onChange={(e) => {
-                      const value = Number(e.target.value)
-                      setSlideDuration(value)
-                      const error = getSlideDurationErrorMessage(value)
-                      setSlideDurationError(error)
-                    }}
-                    onBlur={() => {
-                      const error = getSlideDurationErrorMessage(slideDuration)
-                      if (error) {
-                        setSlideDurationError(error)
-                      } else {
-                        setSlideDurationError(null)
-                        writePresentationSettings({ slideDurationMs: slideDuration })
-                        setSlideDuration(slideDuration)
-                      }
-                    }}
-                    className="w-full rounded-lg border border-white/10 bg-black/20 px-4 py-3 font-mono text-sm text-white placeholder:text-slate-500 focus:border-cyan-300 focus:outline-none focus:ring-1 focus:ring-cyan-300"
-                    aria-describedby={slideDurationError ? 'slide-duration-error' : undefined}
-                    aria-invalid={slideDurationError ? 'true' : 'false'}
-                  />
-                  {slideDurationError && (
-                    <p id="slide-duration-error" className="mt-1.5 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-red-400" role="alert" aria-live="polite">
-                      {slideDurationError}
-                    </p>
-                  )}
+                <div className="flex items-center justify-between gap-4">
+                  <label htmlFor="slide-duration" className="mt-1 text-sm font-medium text-slate-200">
+                    Duración por slide
+                  </label>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <input
+                      id="slide-duration"
+                      type="range"
+                      min={slideDurationMsToSeconds(MIN_SLIDE_DURATION_MS)}
+                      max={slideDurationMsToSeconds(MAX_SLIDE_DURATION_MS)}
+                      step={1}
+                      value={slideDurationSeconds}
+                      aria-label="Duración por slide"
+                      aria-valuetext={`${slideDurationSeconds} segundos`}
+                      aria-describedby={slideDurationError ? 'slide-duration-error' : undefined}
+                      aria-invalid={slideDurationError ? 'true' : 'false'}
+                      onChange={(event) => {
+                        const value = Number(event.currentTarget.value)
+                        slideDurationSecondsRef.current = value
+                        setSlideDurationSeconds(value)
+                        setSlideDurationError(getSlideDurationErrorMessage(slideDurationSecondsToMs(value)))
+                      }}
+                      onBlur={persistSlideDuration}
+                      className="h-2 w-32 cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-200 focus-visible:outline-2 focus-visible:outline-cyan-200 focus-visible:outline-offset-2 sm:w-44"
+                    />
+                    <output htmlFor="slide-duration" className="min-w-12 text-right font-mono text-sm tabular-nums text-cyan-100">
+                      {slideDurationSeconds} s
+                    </output>
+                  </div>
                 </div>
-                <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-slate-500">
-                  Mínimo {MIN_SLIDE_DURATION_MS}ms, máximo {MAX_SLIDE_DURATION_MS}ms, incrementos de {SLIDE_DURATION_STEP_MS}ms
-                </p>
+                {slideDurationError && (
+                  <p id="slide-duration-error" className="text-right font-mono text-[0.6rem] uppercase tracking-[0.14em] text-red-400" role="alert" aria-live="polite">
+                    {slideDurationError}
+                  </p>
+                )}
               </div>
             </div>
-          </section>
-
+           </section>
           <section aria-labelledby="settings-customization-title" className="rounded-[1.5rem] border border-amber-200/15 bg-amber-200/[0.035] p-5">
             <div className="flex items-center gap-3">
               <span aria-hidden="true" className="grid size-9 place-items-center rounded-xl border border-amber-200/20 bg-amber-200/10 font-mono text-sm text-amber-100">02</span>
@@ -195,7 +211,6 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
             </div>
           </section>
         </div>
-
         <p className="mt-6 border-t border-white/10 pt-5 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-slate-500">
           Estas secciones se activarán en las próximas tareas del MVP 1.1.
         </p>

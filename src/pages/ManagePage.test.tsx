@@ -10,6 +10,7 @@ import {
   TIMER_STORAGE_KEY,
 } from '../infrastructure/storage/LocalStorageTimerRepository'
 import { SETTINGS_STORAGE_KEY } from '../infrastructure/storage/SettingsStorage'
+import { PRESENTATION_SETTINGS_STORAGE_KEY } from '../features/timers/presentation.settings'
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>()
@@ -73,9 +74,8 @@ describe('ManagePage', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Configuración' })
     expect(dialog).toBeInTheDocument()
-    expect(screen.getByText('MVP-113')).toBeInTheDocument()
-    expect(screen.getByLabelText('Duración por slide (ms)')).toBeInTheDocument()
-    expect(screen.getByText('MVP-115')).toBeInTheDocument()
+    expect(screen.getByRole('slider', { name: 'Duración por slide' })).toHaveValue('5')
+    expect(screen.getByText('5 s')).toBeInTheDocument()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cerrar configuración' }))
     expect(storage.getItem('chronoflow:settings:v1')).toBeNull()
 
@@ -117,6 +117,24 @@ describe('ManagePage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
 
     expect(screen.getByRole('switch', { name: 'Mostrar segundos' })).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('changes the slide duration in seconds and persists milliseconds', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    renderManage(repository)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
+    const slider = screen.getByRole('slider', { name: 'Duración por slide' })
+
+    expect(slider).toHaveAttribute('min', '2')
+    expect(slider).toHaveAttribute('max', '60')
+    expect(slider).toHaveAttribute('step', '1')
+
+    fireEvent.change(slider, { target: { value: '12' } })
+    expect(screen.getByText('12 s')).toBeInTheDocument()
+
+    fireEvent.blur(slider)
+    expect(window.localStorage.getItem(PRESENTATION_SETTINGS_STORAGE_KEY)).toContain('"slideDurationMs":12000')
   })
 
   it('creates a counter from the form', async () => {

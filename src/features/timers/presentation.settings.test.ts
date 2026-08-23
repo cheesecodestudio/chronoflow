@@ -9,6 +9,8 @@ import {
   MAX_SLIDE_DURATION_MS,
   SLIDE_DURATION_STEP_MS,
   PRESENTATION_SETTINGS_STORAGE_KEY,
+  slideDurationMsToSeconds,
+  slideDurationSecondsToMs,
 } from './presentation.settings'
 
 const mockStorage = {
@@ -34,6 +36,20 @@ describe('presentation.settings', () => {
   describe('DEFAULT_SLIDE_DURATION_MS', () => {
     it('should be 5000', () => {
       expect(DEFAULT_SLIDE_DURATION_MS).toBe(5000)
+    })
+  })
+
+  describe('slide duration conversion', () => {
+    it('converts milliseconds to visible seconds', () => {
+      expect(slideDurationMsToSeconds(2000)).toBe(2)
+      expect(slideDurationMsToSeconds(5000)).toBe(5)
+      expect(slideDurationMsToSeconds(60000)).toBe(60)
+    })
+
+    it('converts visible seconds to persisted milliseconds', () => {
+      expect(slideDurationSecondsToMs(2)).toBe(2000)
+      expect(slideDurationSecondsToMs(5)).toBe(5000)
+      expect(slideDurationSecondsToMs(60)).toBe(60000)
     })
   })
 
