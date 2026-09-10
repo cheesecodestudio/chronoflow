@@ -29,15 +29,15 @@ export function TimerCustomizationFields({
   const groupId = useId()
 
   return (
-    <div className="space-y-5">
+    <div className="cf-customization">
       <fieldset disabled={disabled}>
-        <legend className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+        <legend>
           Color / acento
         </legend>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          El acento identifica el timer; el contenido siempre conserva su contraste.
+        <p className="cf-field-help">
+          Un detalle de color para identificarlo.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="cf-choices">
           {TIMER_ACCENTS.map((accent) => (
             <AccentOption
               key={accent}
@@ -51,10 +51,10 @@ export function TimerCustomizationFields({
       </fieldset>
 
       <fieldset disabled={disabled}>
-        <legend className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+        <legend>
           Icono
         </legend>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="cf-choices">
           {TIMER_ICONS.map((icon) => (
             <IconOption
               key={icon}
@@ -85,23 +85,23 @@ function AccentOption({
   const color = TIMER_ACCENT_COLORS[accent]
 
   return (
-    <label className="relative cursor-pointer">
+    <label className="cf-choice">
       <input
         type="radio"
         name={name}
         value={accent}
         checked={checked}
         onChange={onChange}
-        className="peer sr-only"
+        className="cf-sr-only"
       />
-      <span className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-[#091522] px-3 text-sm text-slate-300 transition hover:border-white/25 peer-checked:border-white/40 peer-checked:bg-white/[0.07] peer-focus-visible:outline-2 peer-focus-visible:outline-cyan-200 peer-focus-visible:outline-offset-2 peer-disabled:cursor-wait peer-disabled:opacity-60">
+      <span>
         <span
           aria-hidden="true"
-          className="size-4 shrink-0 rounded-full border border-white/25"
+          className="cf-swatch"
           style={{ backgroundColor: color }}
         />
-        <span className="flex-1">{TIMER_ACCENT_LABELS[accent]}</span>
-        {checked ? <AppIcon name="check" className="size-3" /> : null}
+        <span className="cf-choice-label">{TIMER_ACCENT_LABELS[accent]}</span>
+        {checked ? <AppIcon name="check" /> : null}
       </span>
     </label>
   )
@@ -121,23 +121,22 @@ function IconOption({
   onChange: () => void
 }) {
   return (
-    <label className="relative cursor-pointer">
+    <label className="cf-choice">
       <input
         type="radio"
         name={name}
         value={icon}
         checked={checked}
         onChange={onChange}
-        className="peer sr-only"
+        className="cf-sr-only"
       />
-      <span className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-[#091522] px-3 text-sm text-slate-300 transition hover:border-white/25 peer-checked:border-white/40 peer-checked:bg-white/[0.07] peer-focus-visible:outline-2 peer-focus-visible:outline-cyan-200 peer-focus-visible:outline-offset-2 peer-disabled:cursor-wait peer-disabled:opacity-60">
+      <span>
         <AppIcon
           name={getTimerAppIconName(icon)}
-          className="size-4 shrink-0"
           style={{ color: TIMER_ACCENT_COLORS[accent] }}
         />
-        <span className="flex-1">{TIMER_ICON_LABELS[icon]}</span>
-        {checked ? <AppIcon name="check" className="size-3" /> : null}
+        <span className="cf-choice-label">{TIMER_ICON_LABELS[icon]}</span>
+        {checked ? <AppIcon name="check" /> : null}
       </span>
     </label>
   )
