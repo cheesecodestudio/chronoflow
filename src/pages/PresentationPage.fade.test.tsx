@@ -1,3 +1,5 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
 import { Temporal } from 'temporal-polyfill'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -40,6 +42,8 @@ class MemoryStorage implements Storage {
 }
 
 const NOW = Temporal.Instant.from('2024-01-01T00:00:00Z')
+// Vitest stubs CSS imports; read the source to verify the stylesheet contract.
+const presentationCss = readFileSync('src/pages/presentation.css', 'utf8')
 type RepositoryTimer = Parameters<LocalStorageTimerRepository['create']>[0]
 
 function counter(id: string, position: number): Extract<RepositoryTimer, { type: 'counter' }> {
@@ -99,12 +103,19 @@ describe('PresentationPage fade transition', () => {
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
 
     // Click next timer - this triggers fade-out
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente timer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente temporizador' }))
+    expect(screen.getByRole('heading', { name: 'First' }).parentElement).toHaveAttribute('data-phase', 'fade-out')
+
+    await act(async () => {
+      vi.advanceTimersByTime(FADE_DURATION_MS - 1)
+    })
+    expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
 
     // Wait for fade-out (FADE_DURATION_MS)
     await act(async () => {
-      vi.advanceTimersByTime(FADE_DURATION_MS)
+      vi.advanceTimersByTime(1)
     })
+    expect(screen.getByRole('heading', { name: 'Second' }).parentElement).toHaveAttribute('data-phase', 'fade-in')
 
     // Wait for fade-in (FADE_DURATION_MS)
     await act(async () => {
@@ -113,6 +124,7 @@ describe('PresentationPage fade transition', () => {
 
     // Now the second timer should be visible
     expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Second' }).parentElement).toHaveAttribute('data-phase', 'idle')
   })
 
   it('uses FADE_DURATION_MS (280ms) for keyboard navigation transitions', async () => {
@@ -164,7 +176,28 @@ describe('PresentationPage fade transition', () => {
     const timerContainer = heading.parentElement
 
     expect(timerContainer).toBeInTheDocument()
-    // The transition duration should match FADE_DURATION_MS
-    expect(timerContainer?.className).toContain(`duration-[${FADE_DURATION_MS}ms]`)
+    expect(timerContainer).toHaveClass('presentation-slide')
+    expect(timerContainer?.style.getPropertyValue('--presentation-fade-duration')).toBe(`${FADE_DURATION_MS}ms`)
+    expect(presentationCss).toContain('transition: opacity var(--presentation-fade-duration, 280ms) ease')
+    expect(presentationCss).toContain(".presentation-slide[data-phase='fade-out'] {\n  opacity: 0;")
+  })
+
+  it('removes nonessential transitions and fading for reduced motion without changing navigation timing', async () => {
+    const reducedMotionCss = presentationCss.slice(presentationCss.indexOf('@media (prefers-reduced-motion: reduce)'))
+    expect(reducedMotionCss).toContain('.presentation-slide,')
+    expect(reducedMotionCss).toContain('.presentation-chrome,')
+    expect(reducedMotionCss).toContain('.presentation-button {\n    transition: none;')
+    expect(reducedMotionCss).toContain(".presentation-slide[data-phase='fade-out'] {\n    opacity: 1;")
+
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create(counter('First', 0))
+    await repository.create(counter('Second', 1))
+    renderPresentation(repository)
+    await flushLoading()
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await act(async () => {
+      vi.advanceTimersByTime(FADE_DURATION_MS)
+    })
+    expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument()
   })
 })

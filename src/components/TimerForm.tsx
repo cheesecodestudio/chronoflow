@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Temporal } from 'temporal-polyfill'
 
 import { TimerCustomizationFields } from './TimerCustomizationFields'
+import { Button } from './ui/Button'
 import {
   DEFAULT_TIMER_ACCENT,
   DEFAULT_TIMER_ICON,
@@ -11,6 +12,7 @@ import type {
   TimerDraft,
   TimerIcon,
   TimerType,
+  TimerValidationField,
 } from '../features/timers/timer.types'
 import { detectTimeZone, localDateTimeToInstant } from '../features/timers/timer.utils'
 import { TimerValidationException } from '../features/timers/timer.use-cases'
@@ -49,10 +51,14 @@ export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
   const [form, setForm] = useState<FormState>(getInitialState)
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [invalidField, setInvalidField] = useState<TimerValidationField | null>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
+  const dateRef = useRef<HTMLInputElement>(null)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError(null)
+    setInvalidField(null)
     setIsSubmitting(true)
 
     try {
@@ -81,6 +87,10 @@ export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
     } catch (error) {
       if (error instanceof TimerValidationException) {
         setFormError(error.errors[0]?.message ?? 'Revisa los datos del timer.')
+        const field = error.errors[0]?.field ?? null
+        setInvalidField(field)
+        if (field === 'title') titleRef.current?.focus()
+        else if (field === 'startAt' || field === 'targetAt') dateRef.current?.focus()
       } else {
         setFormError('No se pudo guardar el timer.')
       }
@@ -90,89 +100,91 @@ export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
   }
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
-      <div>
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-cyan-300">Nuevo registro</p>
-        <h2 className="mt-2 font-serif text-3xl text-white">Capture a moment.</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
-          Guarda el instante base. Chronoflow calcula el tiempo en vivo.
-        </p>
+    <form className="cf-form" onSubmit={handleSubmit}>
+      <div className="cf-dialog-header">
+        <div>
+          <h2 id="new-timer-title" className="cf-dialog-title">Crear nuevo timer</h2>
+          <p className="cf-dialog-description">
+            Elige qué quieres medir y su fecha de referencia.
+          </p>
+        </div>
       </div>
 
       {formError ? (
-        <p className="rounded-2xl border border-red-300/20 bg-red-300/10 px-4 py-3 text-sm text-red-100" role="alert">
+        <p id="timer-form-error" className="cf-error" role="alert">
           {formError}
         </p>
       ) : null}
 
-      <label className="block">
-        <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">Título</span>
+      <label className="cf-label">
+        <span>Título</span>
         <input
+          ref={titleRef}
           required
           maxLength={100}
           name="title"
           value={form.title}
           onChange={(event) => setForm({ ...form, title: event.currentTarget.value })}
-          className="min-h-12 w-full rounded-2xl border border-white/10 bg-[#091522] px-4 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/10"
+          className="cf-field"
+          aria-invalid={invalidField === 'title' || undefined}
+          aria-describedby={invalidField === 'title' ? 'timer-form-error' : undefined}
           placeholder="No tomar café"
         />
       </label>
 
-      <label className="block">
-        <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">Tipo</span>
+      <label className="cf-label">
+        <span>Tipo</span>
         <select
           name="type"
           value={form.type}
           onChange={(event) => setForm({ ...form, type: event.currentTarget.value as TimerType })}
-          className="min-h-12 w-full appearance-none rounded-2xl border border-white/10 bg-[#091522] px-4 text-white outline-none transition focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/10"
+          className="cf-field"
         >
-          <option value="counter">Counter · tiempo transcurrido</option>
-          <option value="countdown">Countdown · tiempo restante</option>
+          <option value="counter">Contador · tiempo transcurrido</option>
+          <option value="countdown">Cuenta atrás · tiempo restante</option>
         </select>
       </label>
 
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block">
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">Fecha</span>
+      <div className="cf-form-columns">
+        <label className="cf-label">
+          <span>Fecha</span>
           <input
+            ref={dateRef}
             required
             type="date"
             name="date"
             value={form.date}
             onChange={(event) => setForm({ ...form, date: event.currentTarget.value })}
-            className="min-h-12 w-full rounded-2xl border border-white/10 bg-[#091522] px-3 text-sm text-white outline-none focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/10"
+            className="cf-field"
+            aria-invalid={invalidField === 'startAt' || invalidField === 'targetAt' || undefined}
+            aria-describedby={invalidField === 'startAt' || invalidField === 'targetAt' ? 'timer-form-error' : undefined}
           />
         </label>
-        <label className="block">
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">Hora</span>
+        <label className="cf-label">
+          <span>Hora</span>
           <input
             required
             type="time"
             name="time"
             value={form.time}
             onChange={(event) => setForm({ ...form, time: event.currentTarget.value })}
-            className="min-h-12 w-full rounded-2xl border border-white/10 bg-[#091522] px-3 text-sm text-white outline-none focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/10"
+            className="cf-field"
+            aria-invalid={invalidField === 'startAt' || invalidField === 'targetAt' || undefined}
+            aria-describedby={invalidField === 'startAt' || invalidField === 'targetAt' ? 'timer-form-error' : undefined}
           />
         </label>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">Zona horaria detectada</p>
-        <p className="mt-1 font-mono text-sm text-cyan-100">{form.timeZone}</p>
+      <div className="cf-form-note">
+        <p className="cf-eyebrow">Zona horaria detectada</p>
+        <p className="cf-timezone">{form.timeZone}</p>
       </div>
 
       <section
         aria-labelledby="new-timer-appearance"
-        className="rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-4 sm:p-5"
+        className="cf-appearance"
       >
-        <div className="mb-5">
-          <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-cyan-300/80">
-            Identidad visual
-          </p>
-          <h3 id="new-timer-appearance" className="mt-1 font-serif text-2xl text-white">
-            Hazlo reconocible.
-          </h3>
-        </div>
+        <h3 id="new-timer-appearance">Apariencia</h3>
         <TimerCustomizationFields
           value={{ accent: form.accent, icon: form.icon }}
           disabled={isSubmitting}
@@ -180,21 +192,14 @@ export function TimerForm({ onSubmit, onCancel }: TimerFormProps) {
         />
       </section>
 
-      <div className="flex gap-3 pt-2">
-        <button
+      <div className="cf-dialog-actions">
+        <Button variant="secondary" onClick={onCancel}>Cancelar</Button>
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className="min-h-12 flex-1 rounded-full bg-cyan-200 px-5 text-sm font-bold uppercase tracking-wider text-[#07111f] transition hover:bg-white disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-white"
         >
           {isSubmitting ? 'Guardando...' : 'Crear timer'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="min-h-12 rounded-full border border-white/10 px-5 text-sm font-semibold uppercase tracking-wider text-slate-400 transition hover:border-white/30 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
-        >
-          Cancelar
-        </button>
+        </Button>
       </div>
     </form>
   )
