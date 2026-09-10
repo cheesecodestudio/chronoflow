@@ -68,50 +68,54 @@ describe('ManagePage', () => {
     renderManage(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW))
 
     expect(await screen.findByRole('heading', { name: 'Aún no tienes timers.' })).toBeInTheDocument()
-    expect(screen.getByText('Aún no hay momentos guardados.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mis timers', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Presentar' })).toHaveAttribute('href', '/view')
   })
 
   it('opens the settings shell from Manage and closes it without persistence', async () => {
     const storage = new MemoryStorage()
     renderManage(new LocalStorageTimerRepository(storage, () => NOW))
 
-    const trigger = await screen.findByRole('button', { name: 'Configuración' })
+    const trigger = await screen.findByRole('button', { name: 'Ajustes' })
     fireEvent.click(trigger)
 
-    const dialog = screen.getByRole('dialog', { name: 'Configuración' })
+    const dialog = screen.getByRole('dialog', { name: 'Ajustes' })
     expect(dialog).toBeInTheDocument()
-    expect(screen.getByRole('slider', { name: 'Duración por slide' })).toHaveValue('5')
+    expect(screen.getByRole('slider', { name: 'Duración por timer' })).toHaveValue('5')
     expect(screen.getByText('5 s')).toBeInTheDocument()
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cerrar configuración' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cerrar ajustes' }))
     expect(storage.getItem('chronoflow:settings:v1')).toBeNull()
 
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(screen.getByRole('slider', { name: 'Duración por timer' }))
     fireEvent.keyDown(document, { key: 'Tab' })
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cerrar configuración' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cerrar ajustes' }))
 
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('dialog', { name: 'Configuración' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Ajustes' })).not.toBeInTheDocument()
     expect(document.activeElement).toBe(trigger)
     expect(storage.getItem('chronoflow:settings:v1')).toBeNull()
   })
 
   it('closes the settings shell from the backdrop but not from its panel', async () => {
     renderManage(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW))
-    fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajustes' }))
 
-    const dialog = screen.getByRole('dialog', { name: 'Configuración' })
+    const dialog = screen.getByRole('dialog', { name: 'Ajustes' })
     fireEvent.click(dialog)
-    expect(screen.getByRole('dialog', { name: 'Configuración' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Ajustes' })).toBeInTheDocument()
 
     fireEvent.click(dialog.parentElement!)
-    expect(screen.queryByRole('dialog', { name: 'Configuración' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Ajustes' })).not.toBeInTheDocument()
   })
 
   it('toggles and restores the seconds preference from local storage', async () => {
     const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
     const firstRender = renderManage(repository)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajustes' }))
     const toggle = screen.getByRole('switch', { name: 'Ocultar segundos' })
+    expect(toggle).toHaveAttribute('type', 'checkbox')
     expect(toggle).toHaveAttribute('aria-checked', 'true')
 
     fireEvent.click(toggle)
@@ -120,7 +124,7 @@ describe('ManagePage', () => {
 
     firstRender.unmount()
     renderManage(repository)
-    fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajustes' }))
 
     expect(screen.getByRole('switch', { name: 'Mostrar segundos' })).toHaveAttribute('aria-checked', 'false')
   })
@@ -129,8 +133,8 @@ describe('ManagePage', () => {
     const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
     renderManage(repository)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
-    const slider = screen.getByRole('slider', { name: 'Duración por slide' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajustes' }))
+    const slider = screen.getByRole('slider', { name: 'Duración por timer' })
 
     expect(slider).toHaveAttribute('min', '2')
     expect(slider).toHaveAttribute('max', '60')
@@ -138,6 +142,7 @@ describe('ManagePage', () => {
 
     fireEvent.change(slider, { target: { value: '12' } })
     expect(screen.getByText('12 s')).toBeInTheDocument()
+    expect(window.localStorage.getItem(PRESENTATION_SETTINGS_STORAGE_KEY)).toBeNull()
 
     fireEvent.blur(slider)
     expect(window.localStorage.getItem(PRESENTATION_SETTINGS_STORAGE_KEY)).toContain('"slideDurationMs":12000')
@@ -154,8 +159,8 @@ describe('ManagePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Crear timer' }))
 
     expect(await screen.findByText('No tomar café')).toBeInTheDocument()
-    expect(screen.getByText('Counter')).toBeInTheDocument()
-    expect(screen.getAllByText('01')).toHaveLength(2)
+    expect(screen.getByText('Contador')).toBeInTheDocument()
+    expect(screen.getAllByRole('definition').map((element) => element.textContent)).toEqual(['1', '1', '0'])
     expect(await repository.getById((await repository.getAll())[0]!.id)).toMatchObject({
       accent: 'blue',
       icon: 'clock',
@@ -287,8 +292,9 @@ describe('ManagePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Crear timer' }))
 
     expect(await screen.findByText('Viaje')).toBeInTheDocument()
-    expect(screen.getByText('Countdown')).toBeInTheDocument()
+    expect(screen.getByText('Cuenta atrás')).toBeInTheDocument()
     expect(screen.getByText('Tiempo restante')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nuevo timer' })).toHaveFocus()
   })
 
   it('shows an actionable error instead of the empty state for invalid storage', async () => {
@@ -321,7 +327,7 @@ describe('ManagePage', () => {
     renderManage(repository)
 
     expect(await screen.findByText('Temporary')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar Temporary' }))
     // Modal should open
     expect(await screen.findByRole('alertdialog', { name: 'Eliminar timer' })).toBeInTheDocument()
     expect(screen.getByText('Temporary')).toBeInTheDocument()
@@ -346,11 +352,11 @@ describe('ManagePage', () => {
     renderManage(repository)
 
     expect(await screen.findByText('Daily reset')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Reiniciar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reiniciar Daily reset' }))
     // Modal should open
-    expect(await screen.findByRole('alertdialog', { name: 'Reiniciar counter' })).toBeInTheDocument()
+    expect(await screen.findByRole('alertdialog', { name: 'Reiniciar contador' })).toBeInTheDocument()
     // Click confirm in modal - target the button inside the alertdialog
-    const modal = await screen.findByRole('alertdialog', { name: 'Reiniciar counter' })
+    const modal = await screen.findByRole('alertdialog', { name: 'Reiniciar contador' })
     fireEvent.click(within(modal).getByRole('button', { name: 'Reiniciar' }))
     await waitFor(async () => {
       const restarted = await repository.getById('counter')
@@ -360,11 +366,119 @@ describe('ManagePage', () => {
       }
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar Daily reset' }))
     expect(await screen.findByRole('alertdialog', { name: 'Eliminar timer' })).toBeInTheDocument()
     const deleteModal = await screen.findByRole('alertdialog', { name: 'Eliminar timer' })
     fireEvent.click(within(deleteModal).getByRole('button', { name: 'Eliminar' }))
     await waitFor(() => expect(screen.queryByText('Daily reset')).not.toBeInTheDocument())
     expect(screen.getByText('Aún no tienes timers.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nuevo timer' })).toHaveFocus()
+  })
+
+  it.each(['Nuevo timer', 'Crear primer timer'])('contains creation focus and restores it to %s on dismissal', async (name) => {
+    const { container } = renderManage(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW))
+    await screen.findByText('Aún no tienes timers.')
+    const trigger = screen.getByRole('button', { name })
+    fireEvent.click(trigger)
+    const dialog = screen.getByRole('dialog', { name: 'Crear nuevo timer' })
+    const title = screen.getByRole('textbox', { name: 'Título' })
+    expect(title).toHaveFocus()
+    expect(container).toHaveAttribute('inert')
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(screen.getByRole('button', { name: 'Crear timer' })).toHaveFocus()
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(title).toHaveFocus()
+    fireEvent.click(dialog)
+    expect(dialog).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+    expect(container).not.toHaveAttribute('inert')
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('dialog').parentElement!)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it.each([
+    ['Eliminar', 'Eliminar timer'],
+    ['Reiniciar', 'Reiniciar contador'],
+  ])('contains %s confirmation focus and cancels through Escape and backdrop', async (action, title) => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({
+      id: 'focus-test', title: 'Una referencia', type: 'counter', timeZone: 'UTC',
+      startAt: '2023-12-31T00:00:00Z', position: 0, createdAt: NOW.toString(), updatedAt: NOW.toString(),
+    })
+    const { container } = renderManage(repository)
+    const trigger = await screen.findByRole('button', { name: `${action} Una referencia` })
+    fireEvent.click(trigger)
+    const dialog = screen.getByRole('alertdialog', { name: title })
+    expect(dialog).toHaveAccessibleDescription(/Una referencia/)
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveFocus()
+    expect(container).toHaveAttribute('inert')
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(within(dialog).getByRole('button', { name: action })).toHaveFocus()
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveFocus()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('alertdialog').parentElement!)
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+    expect(container).not.toHaveAttribute('inert')
+    expect(await repository.getById('focus-test')).toMatchObject({ startAt: '2023-12-31T00:00:00Z' })
+  })
+
+  it.each(['Escape', 'backdrop', 'button'])('persists the pending duration on settings close via %s', async (method) => {
+    renderManage(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW))
+    const trigger = await screen.findByRole('button', { name: 'Ajustes' })
+    fireEvent.click(trigger)
+    fireEvent.change(screen.getByRole('slider', { name: 'Duración por timer' }), { target: { value: '17' } })
+    expect(window.localStorage.getItem(PRESENTATION_SETTINGS_STORAGE_KEY)).toBeNull()
+    if (method === 'Escape') fireEvent.keyDown(document, { key: 'Escape' })
+    else if (method === 'backdrop') fireEvent.click(screen.getByRole('dialog').parentElement!)
+    else fireEvent.click(screen.getByRole('button', { name: 'Cerrar ajustes' }))
+    expect(window.localStorage.getItem(PRESENTATION_SETTINGS_STORAGE_KEY)).toContain('"slideDurationMs":17000')
+    expect(trigger).toHaveFocus()
+  })
+
+  it('retains validation and associates the error with the focused field', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    renderManage(repository)
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo timer' }))
+    const title = screen.getByRole('textbox', { name: 'Título' })
+    fireEvent.change(title, { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crear timer' }))
+    const error = await screen.findByRole('alert')
+    expect(title).toHaveAttribute('aria-invalid', 'true')
+    expect(title).toHaveAccessibleDescription(error.textContent!)
+    expect(title).toHaveFocus()
+    expect(await repository.getAll()).toEqual([])
+    expect(screen.getByRole('dialog', { name: 'Crear nuevo timer' })).toBeInTheDocument()
+  })
+
+  it('traps personalization focus and cancels the selected appearance through the backdrop', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({
+      id: 'appearance-focus', title: 'Referencia', type: 'counter', timeZone: 'UTC',
+      startAt: '2023-12-31T00:00:00Z', position: 0, createdAt: NOW.toString(), updatedAt: NOW.toString(),
+      accent: 'blue', icon: 'clock',
+    })
+    renderManage(repository)
+    const trigger = await screen.findByRole('button', { name: 'Personalizar Referencia' })
+    fireEvent.click(trigger)
+    expect(screen.getByRole('button', { name: 'Cerrar personalización' })).toHaveFocus()
+    expect(screen.getAllByRole('radio')).toHaveLength(12)
+    expect(screen.getByRole('radio', { name: 'Pizarra' })).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(screen.getByRole('button', { name: 'Guardar personalización' })).toHaveFocus()
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(screen.getByRole('button', { name: 'Cerrar personalización' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('radio', { name: 'Pizarra' }))
+    fireEvent.click(screen.getByRole('dialog').parentElement!)
+    expect(trigger).toHaveFocus()
+    expect(await repository.getById('appearance-focus')).toMatchObject({ accent: 'blue', icon: 'clock' })
   })
 })

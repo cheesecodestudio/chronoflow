@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useRef, useState, type RefObject } from 'react'
 
 import { AppIcon } from './AppIcon'
+import { Button } from './ui/Button'
+import { Dialog } from './ui/Dialog'
 import { setSlideDurationMs } from '../features/timers/presentation.constants'
 import {
   getSlideDurationErrorMessage,
@@ -18,18 +20,7 @@ interface SettingsModalProps {
   returnFocusRef: RefObject<HTMLElement | null>
 }
 
-const focusableSelector = [
-  'button:not([disabled])',
-  '[href]',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(', ')
-
 export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const closeButtonRef = useRef<HTMLButtonElement>(null)
   const [slideDurationSeconds, setSlideDurationSeconds] = useState<number>(() => slideDurationMsToSeconds(readPresentationSettings().slideDurationMs))
   const slideDurationSecondsRef = useRef(slideDurationSeconds)
   const [slideDurationError, setSlideDurationError] = useState<string | null>(null)
@@ -51,154 +42,49 @@ export function SettingsModal({ onClose, returnFocusRef }: SettingsModalProps) {
   const close = useCallback(() => {
     persistSlideDuration()
     onClose()
-    returnFocusRef.current?.focus()
-  }, [onClose, persistSlideDuration, returnFocusRef])
-
-  useEffect(() => {
-    closeButtonRef.current?.focus()
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        close()
-        return
-      }
-
-      if (event.key !== 'Tab' || !dialogRef.current) {
-        return
-      }
-
-      const focusable = [...dialogRef.current.querySelectorAll<HTMLElement>(focusableSelector)]
-      if (focusable.length === 0) {
-        event.preventDefault()
-        return
-      }
-
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [close])
+  }, [onClose, persistSlideDuration])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#020a12]/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) close()
-      }}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="settings-modal-title"
-        className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-[2rem] border border-white/10 bg-[#0b1826] p-6 shadow-2xl shadow-black/50 sm:rounded-[2rem] sm:p-8"
-      >
-        <header className="flex items-start justify-between gap-6 border-b border-white/10 pb-5">
-          <div>
-            <p className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-cyan-300">Workspace settings</p>
-            <h2 id="settings-modal-title" className="mt-2 font-serif text-3xl text-white">Configuración</h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
-              Un espacio para preparar las preferencias que harán tu observatorio más tuyo.
-            </p>
-          </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            aria-label="Cerrar configuración"
-            onClick={close}
-            className="grid size-10 shrink-0 place-items-center rounded-full border border-white/10 text-xl text-slate-400 transition hover:border-white/30 hover:text-white focus-visible:outline-2 focus-visible:outline-cyan-200 focus-visible:outline-offset-2"
-          >
-            <AppIcon name="xmark" className="size-4" />
-          </button>
-        </header>
-
-        <div className="mt-6 space-y-5">
-          <section aria-labelledby="settings-presentation-title" className="rounded-[1.5rem] border border-cyan-200/15 bg-cyan-200/[0.035] p-5">
-            <div className="flex items-center gap-3">
-              <span aria-hidden="true" className="grid size-9 place-items-center rounded-xl border border-cyan-200/20 bg-cyan-200/10 font-mono text-sm text-cyan-100">01</span>
-              <div>
-                <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-cyan-300/80">Presentation layer</p>
-                <h3 id="settings-presentation-title" className="mt-1 font-serif text-2xl text-white">Configuración / Presentación</h3>
-              </div>
-            </div>
-            <div className="mt-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="mt-1 text-sm font-medium text-slate-200">
-                    {showSeconds ? 'Ocultar Segundos' : 'Mostrar Segundos'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={showSeconds}
-                  aria-label={showSeconds ? 'Ocultar segundos' : 'Mostrar segundos'}
-                  onClick={() => setShowSeconds(!showSeconds)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-cyan-200 focus-visible:outline-offset-2 ${
-                    showSeconds ? 'bg-cyan-300' : 'bg-white/10'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      showSeconds ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-4">
-                  <label htmlFor="slide-duration" className="mt-1 text-sm font-medium text-slate-200">
-                    Duración por slide
-                  </label>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <input
-                      id="slide-duration"
-                      type="range"
-                      min={slideDurationMsToSeconds(MIN_SLIDE_DURATION_MS)}
-                      max={slideDurationMsToSeconds(MAX_SLIDE_DURATION_MS)}
-                      step={1}
-                      value={slideDurationSeconds}
-                      aria-label="Duración por slide"
-                      aria-valuetext={`${slideDurationSeconds} segundos`}
-                      aria-describedby={slideDurationError ? 'slide-duration-error' : undefined}
-                      aria-invalid={slideDurationError ? 'true' : 'false'}
-                      onChange={(event) => {
-                        const value = Number(event.currentTarget.value)
-                        slideDurationSecondsRef.current = value
-                        setSlideDurationSeconds(value)
-                        setSlideDurationError(getSlideDurationErrorMessage(slideDurationSecondsToMs(value)))
-                      }}
-                      onBlur={persistSlideDuration}
-                      className="h-2 w-32 cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-200 focus-visible:outline-2 focus-visible:outline-cyan-200 focus-visible:outline-offset-2 sm:w-44"
-                    />
-                    <output htmlFor="slide-duration" className="min-w-12 text-right font-mono text-sm tabular-nums text-cyan-100">
-                      {slideDurationSeconds} s
-                    </output>
-                  </div>
-                </div>
-                {slideDurationError && (
-                  <p id="slide-duration-error" className="text-right font-mono text-[0.6rem] uppercase tracking-[0.14em] text-red-400" role="alert" aria-live="polite">
-                    {slideDurationError}
-                  </p>
-                )}
-              </div>
-            </div>
-           </section>
+    <Dialog labelledBy="settings-modal-title" describedBy="settings-description" onClose={close} returnFocusRef={returnFocusRef}>
+      <header className="cf-dialog-header">
+        <div>
+          <h2 id="settings-modal-title" className="cf-dialog-title">Ajustes</h2>
+          <p id="settings-description" className="cf-dialog-description">Configura cómo se muestra el tiempo.</p>
         </div>
-      </div>
-    </div>
+        <Button variant="ghost" className="cf-button--icon" aria-label="Cerrar ajustes" onClick={close}>
+          <AppIcon name="xmark" />
+        </Button>
+      </header>
+
+      <section aria-labelledby="settings-presentation-title" className="cf-settings-section">
+        <h3 id="settings-presentation-title">Presentación</h3>
+        <label className="cf-setting-row">
+          <span>{showSeconds ? 'Ocultar segundos' : 'Mostrar segundos'}</span>
+          <input type="checkbox" role="switch" className="cf-switch" checked={showSeconds}
+            aria-checked={showSeconds} onChange={(event) => setShowSeconds(event.currentTarget.checked)} />
+        </label>
+        <div className="cf-slider-field">
+          <div className="cf-slider-label">
+            <label htmlFor="slide-duration">Duración por timer</label>
+            <output htmlFor="slide-duration">{slideDurationSeconds} s</output>
+          </div>
+          <input id="slide-duration" type="range" className="cf-slider"
+            min={slideDurationMsToSeconds(MIN_SLIDE_DURATION_MS)}
+            max={slideDurationMsToSeconds(MAX_SLIDE_DURATION_MS)} step={1} value={slideDurationSeconds}
+            aria-valuetext={`${slideDurationSeconds} segundos`}
+            aria-describedby={slideDurationError ? 'slide-duration-error' : 'slide-duration-help'}
+            aria-invalid={slideDurationError ? 'true' : 'false'}
+            onChange={(event) => {
+              const value = Number(event.currentTarget.value)
+              slideDurationSecondsRef.current = value
+              setSlideDurationSeconds(value)
+              setSlideDurationError(getSlideDurationErrorMessage(slideDurationSecondsToMs(value)))
+            }}
+            onBlur={persistSlideDuration} />
+          <p id="slide-duration-help" className="cf-field-help">Tiempo que se muestra cada timer en la presentación automática.</p>
+          {slideDurationError ? <p id="slide-duration-error" className="cf-error" role="alert">{slideDurationError}</p> : null}
+        </div>
+      </section>
+    </Dialog>
   )
 }
