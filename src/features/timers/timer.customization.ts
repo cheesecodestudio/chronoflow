@@ -27,7 +27,7 @@ export const TIMER_ACCENT_LABELS: Record<TimerAccent, string> = {
   amber: 'Ámbar',
   red: 'Rojo',
   purple: 'Morado',
-  slate: 'Slate',
+  slate: 'Pizarra',
 }
 
 export const TIMER_ICON_LABELS: Record<TimerIcon, string> = {

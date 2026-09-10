@@ -1,12 +1,15 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
 import { Temporal } from 'temporal-polyfill'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PresentationPage } from './PresentationPage'
-import { getSlideDurationMs } from '../features/timers/presentation.constants'
+import { FADE_DURATION_MS, getSlideDurationMs } from '../features/timers/presentation.constants'
 import { SettingsProvider } from '../features/timers/SettingsContext'
+import { writeSettings } from '../infrastructure/storage/SettingsStorage'
 import {
   LocalStorageTimerRepository,
   TIMER_STORAGE_KEY,
@@ -41,6 +44,8 @@ class MemoryStorage implements Storage {
 }
 
 const NOW = Temporal.Instant.from('2024-01-01T00:00:00Z')
+// Vitest stubs CSS imports; read the source to verify the stylesheet contract.
+const presentationCss = readFileSync('src/pages/presentation.css', 'utf8')
 type RepositoryTimer = Parameters<LocalStorageTimerRepository['create']>[0]
 
 function counter(id: string, position: number): Extract<RepositoryTimer, { type: 'counter' }> {
@@ -92,6 +97,8 @@ async function flushLoading() {
 describe('PresentationPage', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+    vi.spyOn(Temporal.Now, 'instant').mockReturnValue(NOW)
+    window.localStorage.clear()
   })
 
   afterEach(() => {
@@ -107,9 +114,11 @@ describe('PresentationPage', () => {
     renderPresentation(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW))
     await flushLoading()
 
-    expect(screen.getByRole('heading', { name: 'No hay timers para mostrar.' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Volver a Manage' })).toHaveAttribute('href', '/manage')
+    expect(screen.getByRole('heading', { name: 'No hay temporizadores para mostrar.' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Volver a gestión' })).toHaveAttribute('href', '/manage')
     expect(screen.queryByRole('button', { name: 'Configuración' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Controles de presentación' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Siguiente temporizador' })).not.toBeInTheDocument()
   })
 
   it('shows retry and Manage navigation for invalid storage', async () => {
@@ -120,8 +129,13 @@ describe('PresentationPage', () => {
 
     expect(screen.getByRole('heading', { name: 'No pudimos cargar la presentación.' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Volver a Manage' })).toHaveAttribute('href', '/manage')
-    expect(screen.queryByRole('heading', { name: 'No hay timers para mostrar.' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Volver a gestión' })).toHaveAttribute('href', '/manage')
+    expect(screen.queryByRole('heading', { name: 'No hay temporizadores para mostrar.' })).not.toBeInTheDocument()
+
+    storage.clear()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await flushLoading()
+    expect(screen.getByRole('heading', { name: 'No hay temporizadores para mostrar.' })).toBeInTheDocument()
   })
 
   it('keeps a single timer stable without automatic transitions', async () => {
@@ -167,7 +181,7 @@ describe('PresentationPage', () => {
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
 
     // Navegación manual: siguiente
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente timer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente temporizador' }))
     await act(async () => {
       vi.advanceTimersByTime(280)
       vi.advanceTimersByTime(280)
@@ -175,7 +189,7 @@ describe('PresentationPage', () => {
     expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument()
 
     // Loop: siguiente desde el último vuelve al primero
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente timer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente temporizador' }))
     await act(async () => {
       vi.advanceTimersByTime(280)
       vi.advanceTimersByTime(280)
@@ -243,29 +257,182 @@ describe('PresentationPage', () => {
     await flushLoading()
 
     const pauseButton = screen.getByRole('button', { name: 'Pausar presentación' })
-    const controlsBar = pauseButton.parentElement?.parentElement?.parentElement
-    expect(controlsBar).toHaveClass('opacity-100')
+    const controlsBar = pauseButton.closest('footer')
+    expect(controlsBar).toHaveAttribute('data-visible', 'true')
 
     await act(async () => {
       vi.advanceTimersByTime(getSlideDurationMs())
     })
-    expect(controlsBar).toHaveClass('opacity-0')
+    expect(controlsBar).toHaveAttribute('data-visible', 'false')
 
     fireEvent.pointerDown(screen.getByRole('main'))
-    expect(controlsBar).toHaveClass('opacity-100')
+    expect(controlsBar).toHaveAttribute('data-visible', 'true')
   })
 
-  it('allows mobile scrolling while keeping larger viewports locked', async () => {
+  it('keeps long titles and large years intact in a scrollable, in-flow layout', async () => {
     const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
-    await repository.create(counter('Responsive scroll', 0))
+    const title = 'Una presentación de larga duración '.padEnd(100, 'a')
+    await repository.create({ ...counter(title, 0), startAt: '-100000-01-01T00:00:00Z' })
     renderPresentation(repository)
     await flushLoading()
 
     const main = screen.getByRole('main')
-    const content = screen.getByRole('heading', { name: 'Responsive scroll' }).parentElement?.parentElement
+    const content = screen.getByRole('heading', { name: title }).parentElement?.parentElement
 
-    expect(main).toHaveClass('overflow-y-auto', 'overflow-x-hidden', 'sm:overflow-hidden')
-    expect(content).toHaveClass('relative', 'overflow-visible', 'sm:absolute', 'sm:overflow-hidden')
+    expect(main).toHaveClass('presentation-page')
+    expect(content).toHaveClass('presentation-stage')
+    expect(screen.getByRole('heading', { name: title })).toHaveTextContent(title)
+    expect(within(screen.getByRole('group', { name: 'Fecha' })).getByRole('definition')).toHaveTextContent('102024')
+    expect(presentationCss).toContain('overflow-wrap: anywhere')
+    expect(presentationCss).toContain('overflow-y: auto')
+    expect(presentationCss).not.toMatch(/overflow-y:\s*hidden|text-overflow:\s*ellipsis|position:\s*fixed/)
+    expect(presentationCss.match(/\.presentation-stage \{[^}]+\}/)?.[0]).not.toMatch(/position:\s*absolute|overflow:\s*hidden/)
+  })
+
+  it('shows accessible numeric definitions and labels, without rings or ticking live regions', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({ ...counter('All units', 0), startAt: '2022-10-20T12:30:40Z' })
+    renderPresentation(repository)
+    await flushLoading()
+
+    const duration = screen.getByRole('region', { name: 'Tiempo transcurrido' })
+    expect(within(duration).getAllByRole('term').map((term) => term.textContent)).toEqual([
+      'AÑOS', 'MESES', 'DÍAS', 'HORAS', 'MINUTOS', 'SEGUNDOS',
+    ])
+    const values = within(duration).getAllByRole('definition')
+    expect(values.map((value) => value.textContent)).toEqual(['01', '02', '11', '11', '29', '20'])
+    for (const value of values) {
+      expect(value.closest('[aria-hidden="true"]')).toBeNull()
+      expect(value.closest('[aria-live], [role="status"], [role="timer"]')).toBeNull()
+    }
+    expect(duration.querySelector('svg, circle')).toBeNull()
+    expect(duration.querySelector('.presentation-unit-seconds')).toContainElement(values[5])
+    expect(presentationCss).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))')
+    expect(presentationCss).toContain('grid-template-columns: repeat(var(--presentation-unit-count), minmax(0, 1fr))')
+  })
+
+  it('honors the stored seconds preference and keeps zero hours and minutes visible', async () => {
+    writeSettings({ showSeconds: false })
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({ ...counter('Just started', 0), startAt: NOW.toString() })
+    renderPresentation(repository)
+    await flushLoading()
+
+    const duration = screen.getByRole('region', { name: 'Tiempo transcurrido' })
+    expect(within(duration).getAllByRole('term').map((term) => term.textContent)).toEqual(['HORAS', 'MINUTOS'])
+    expect(within(duration).getAllByRole('definition').map((value) => value.textContent)).toEqual(['00', '00'])
+    expect(screen.queryByRole('group', { name: 'Fecha' })).not.toBeInTheDocument()
+  })
+
+  it('renders a future countdown and announces its completion once reached', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({ ...countdown('Coming soon'), targetAt: NOW.add({ seconds: 10 }).toString() })
+    renderPresentation(repository)
+    await flushLoading()
+
+    expect(screen.getByText('Cuenta atrás')).toBeInTheDocument()
+    const duration = screen.getByRole('region', { name: 'Tiempo restante' })
+    expect(within(duration).getAllByRole('definition').map((value) => value.textContent)).toEqual(['00', '00', '10'])
+    vi.mocked(Temporal.Now.instant).mockReturnValue(NOW.add({ seconds: 10 }))
+    await act(async () => { vi.advanceTimersByTime(1000) })
+    expect(screen.getByRole('status')).toHaveTextContent('Llegó el momento')
+    expect(screen.queryByRole('region', { name: 'Tiempo restante' })).not.toBeInTheDocument()
+  })
+
+  it.each(['Pausar presentación', 'Volver a gestión'])('keeps controls visible while %s has focus and hides them after blur', async (name) => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create(counter('Keyboard focus', 0))
+    renderPresentation(repository)
+    await flushLoading()
+    const control = name === 'Volver a gestión'
+      ? screen.getByRole('link', { name })
+      : screen.getByRole('button', { name })
+    const chrome = control.closest('.presentation-chrome')
+
+    await act(async () => { vi.advanceTimersByTime(getSlideDurationMs()) })
+    expect(chrome).toHaveAttribute('data-visible', 'false')
+    act(() => control.focus())
+    expect(control).toHaveFocus()
+    expect(chrome).toHaveAttribute('data-visible', 'true')
+    await act(async () => { vi.advanceTimersByTime(getSlideDurationMs() * 2) })
+    expect(chrome).toHaveAttribute('data-visible', 'true')
+    act(() => control.blur())
+    await act(async () => { vi.advanceTimersByTime(getSlideDurationMs()) })
+    expect(chrome).toHaveAttribute('data-visible', 'false')
+    expect(presentationCss).toContain(".presentation-chrome[data-visible='false']:not(:focus-within)")
+    expect(presentationCss).toContain('.presentation-button:focus-visible,')
+  })
+
+  it.each(['pointer', 'keyboard'])('recovers inactive controls with %s activity', async (input) => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create(counter('Recover controls', 0))
+    renderPresentation(repository)
+    await flushLoading()
+    const chrome = screen.getByRole('button', { name: 'Pausar presentación' }).closest('footer')
+    await act(async () => { vi.advanceTimersByTime(getSlideDurationMs()) })
+    expect(chrome).toHaveAttribute('data-visible', 'false')
+    if (input === 'pointer') {
+      fireEvent.pointerMove(screen.getByRole('main'))
+    } else {
+      expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(true)
+    }
+    expect(chrome).toHaveAttribute('data-visible', 'true')
+  })
+
+  it('preserves native Space on every button and the management link', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create(counter('Native keyboard', 0))
+    renderPresentation(repository)
+    await flushLoading()
+
+    for (const control of [...screen.getAllByRole('button'), screen.getByRole('link', { name: 'Volver a gestión' })]) {
+      act(() => control.focus())
+      expect(fireEvent.keyDown(control, { key: ' ' })).toBe(true)
+      expect(screen.getByRole('button', { name: 'Pausar presentación' })).toBeInTheDocument()
+    }
+    // jsdom does not synthesize the browser's click from a Space keyup.
+    fireEvent.click(screen.getByRole('button', { name: 'Pausar presentación' }))
+    expect(screen.getByRole('button', { name: 'Reanudar presentación' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: ' ' })
+    expect(screen.getByRole('button', { name: 'Pausar presentación' })).toBeInTheDocument()
+  })
+
+  it('automatically advances circularly and keeps the clock ticking while slides are paused', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create({ ...counter('First', 0), startAt: NOW.toString() })
+    await repository.create(counter('Second', 1))
+    renderPresentation(repository)
+    await flushLoading()
+
+    await act(async () => { vi.advanceTimersByTime(getSlideDurationMs() + FADE_DURATION_MS) })
+    expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument()
+    await act(async () => { vi.advanceTimersByTime(getSlideDurationMs() + FADE_DURATION_MS) })
+    expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Pausar presentación' }))
+    vi.mocked(Temporal.Now.instant).mockReturnValue(NOW.add({ seconds: 15 }))
+    await act(async () => { vi.advanceTimersByTime(getSlideDurationMs() * 2) })
+    expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument()
+    expect(within(screen.getByRole('group', { name: 'Hora' })).getAllByRole('definition')[2]).toHaveTextContent('15')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Temporizador anterior' }))
+    await act(async () => { vi.advanceTimersByTime(FADE_DURATION_MS * 2) })
+    expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument()
+  })
+
+  it('resets auto-advance immediately when manual navigation happens at the interval boundary', async () => {
+    const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
+    await repository.create(counter('First', 0))
+    await repository.create(counter('Second', 1))
+    await repository.create(counter('Third', 2))
+    renderPresentation(repository)
+    await flushLoading()
+
+    await act(async () => { vi.advanceTimersByTime(getSlideDurationMs() - 1) })
+    fireEvent.click(screen.getByRole('button', { name: 'Temporizador anterior' }))
+    await act(async () => { vi.advanceTimersByTime(1 + FADE_DURATION_MS * 2) })
+
+    expect(screen.getByRole('heading', { name: 'Third' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Second' })).not.toBeInTheDocument()
   })
 
   it('uses Fullscreen API and exits fullscreen with Escape', async () => {
@@ -288,14 +455,15 @@ describe('PresentationPage', () => {
 
     renderPresentation(repository)
     await flushLoading()
-    fireEvent.click(screen.getByRole('button', { name: 'Activar fullscreen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Activar pantalla completa' }))
     expect(requestFullscreen).toHaveBeenCalledTimes(1)
 
     Object.defineProperty(document, 'fullscreenElement', {
       configurable: true,
       value: document.documentElement,
     })
-    document.dispatchEvent(new Event('fullscreenchange'))
+    act(() => document.dispatchEvent(new Event('fullscreenchange')))
+    expect(screen.getByRole('button', { name: 'Salir de pantalla completa' })).toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(exitFullscreen).toHaveBeenCalledTimes(1)
   })
