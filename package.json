@@ -2,6 +2,7 @@
   "name": "chronoflow",
   "private": true,
   "version": "0.0.0",
+  "license": "Elastic-2.0",
   "type": "module",
   "packageManager": "pnpm@10.34.5",
   "scripts": {

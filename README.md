@@ -30,3 +30,11 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## License
+
+Chronoflow is source-available under the Elastic License 2.0 (ELv2).
+
+Copyright © 2026 Keslerth Calderón Artavia.
+
+See [LICENSE](./LICENSE) for the full license terms.
