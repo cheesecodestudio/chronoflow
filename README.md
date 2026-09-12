@@ -64,6 +64,23 @@ See the [technical architecture](./context/03-technical-architecture.md) and
 pnpm install
 ```
 
+### Optional Supabase browser configuration
+
+Copy `.env.example` to `.env.local` and provide the Supabase project URL and
+publishable key when authentication is enabled:
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
+
+These values are public browser configuration. Never place a Supabase secret
+or service-role key in a `VITE_` variable. If either approved value is missing,
+Chronoflow remains local-only and the authentication boundary reports
+`Authentication unavailable` without exposing configuration details.
+
+This configuration does not replace local timer persistence.
+
 ### Start the development server
 
 ```bash
