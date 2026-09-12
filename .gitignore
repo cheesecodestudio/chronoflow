@@ -20,6 +20,7 @@ dist-ssr
 # Test and deployment output
 coverage/
 .vercel/
+.playwright-mcp/
 
 # Editor directories and files
 .vscode/*
