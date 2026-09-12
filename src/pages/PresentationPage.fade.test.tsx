@@ -178,16 +178,16 @@ describe('PresentationPage fade transition', () => {
     expect(timerContainer).toBeInTheDocument()
     expect(timerContainer).toHaveClass('presentation-slide')
     expect(timerContainer?.style.getPropertyValue('--presentation-fade-duration')).toBe(`${FADE_DURATION_MS}ms`)
-    expect(presentationCss).toContain('transition: opacity var(--presentation-fade-duration, 280ms) ease')
-    expect(presentationCss).toContain(".presentation-slide[data-phase='fade-out'] {\n  opacity: 0;")
+    expect(presentationCss).toMatch(/transition:\s*opacity\s+var\(--presentation-fade-duration,\s*280ms\)\s+ease\s*;/)
+    expect(presentationCss).toMatch(/\.presentation-slide\[data-phase=['"]fade-out['"]\]\s*\{\s*opacity:\s*0\s*;/)
   })
 
   it('removes nonessential transitions and fading for reduced motion without changing navigation timing', async () => {
     const reducedMotionCss = presentationCss.slice(presentationCss.indexOf('@media (prefers-reduced-motion: reduce)'))
-    expect(reducedMotionCss).toContain('.presentation-slide,')
-    expect(reducedMotionCss).toContain('.presentation-chrome,')
-    expect(reducedMotionCss).toContain('.presentation-button {\n    transition: none;')
-    expect(reducedMotionCss).toContain(".presentation-slide[data-phase='fade-out'] {\n    opacity: 1;")
+    expect(reducedMotionCss).toMatch(/\.presentation-slide[\s\S]*?transition:\s*none\s*;/)
+    expect(reducedMotionCss).toMatch(/\.presentation-chrome[\s\S]*?transition:\s*none\s*;/)
+    expect(reducedMotionCss).toMatch(/\.presentation-button[\s\S]*?transition:\s*none\s*;/)
+    expect(reducedMotionCss).toMatch(/\.presentation-slide\[data-phase=['"]fade-out['"]\]\s*\{\s*opacity:\s*1\s*;/)
 
     const repository = new LocalStorageTimerRepository(new MemoryStorage(), () => NOW)
     await repository.create(counter('First', 0))
