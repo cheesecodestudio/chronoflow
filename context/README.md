@@ -24,6 +24,8 @@ Mantener documentados:
 6. [`06-current-status.md`](./06-current-status.md)
 7. [`07-agent-working-rules.md`](./07-agent-working-rules.md)
 8. [`08-mvp-1.1-roadmap.md`](./08-mvp-1.1-roadmap.md) — incluye plan de ejecución MVP 1.1
+9. [`09-supabase-schema-and-rls-verification.md`](./09-supabase-schema-and-rls-verification.md) — evidencia del schema y RLS de Supabase
+10. [`10-week-1-to-be-c4-architecture.md`](./10-week-1-to-be-c4-architecture.md) — baseline TO-BE de Context y Containers
 
 ## Regla de mantenimiento
 
