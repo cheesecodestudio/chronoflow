@@ -1,7 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 
-import { AuthContext, type AuthLifecycleStatus } from './AuthContext'
+import {
+  AuthContext,
+  type AuthLifecycleStatus,
+  type PendingAuthOperation,
+} from './AuthContext'
 import {
   AUTHENTICATION_UNAVAILABLE_MESSAGE,
   supabaseBrowserClient,
@@ -25,6 +29,10 @@ const INITIAL_AUTH_STATE: AuthState = {
   error: null,
 }
 
+const SIGN_IN_ERROR_MESSAGE = 'Unable to sign in'
+const SIGN_OUT_ERROR_MESSAGE = 'Unable to sign out'
+const OPERATION_IN_PROGRESS_ERROR_MESSAGE = 'Authentication operation already in progress'
+
 function initialState(clientState: SupabaseBrowserClientState): AuthState {
   if (clientState.status === 'available') return INITIAL_AUTH_STATE
 
@@ -45,6 +53,9 @@ function stateFromSession(session: Session | null): AuthState {
 
 export function AuthProvider({ children, clientState = supabaseBrowserClient }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>(() => initialState(clientState))
+  const [pendingOperation, setPendingOperation] = useState<PendingAuthOperation>(null)
+  const [operationError, setOperationError] = useState<string | null>(null)
+  const pendingOperationRef = useRef<PendingAuthOperation>(null)
 
   useEffect(() => {
     if (clientState.status === 'unavailable') return
@@ -77,10 +88,59 @@ export function AuthProvider({ children, clientState = supabaseBrowserClient }: 
     }
   }, [clientState])
 
+  function beginOperation(operation: Exclude<PendingAuthOperation, null>): boolean {
+    if (clientState.status === 'unavailable') return false
+
+    if (pendingOperationRef.current) {
+      setOperationError(OPERATION_IN_PROGRESS_ERROR_MESSAGE)
+      return false
+    }
+
+    pendingOperationRef.current = operation
+    setPendingOperation(operation)
+    setOperationError(null)
+    return true
+  }
+
+  function finishOperation() {
+    pendingOperationRef.current = null
+    setPendingOperation(null)
+  }
+
+  async function signInWithPassword(email: string, password: string): Promise<void> {
+    if (clientState.status === 'unavailable' || !beginOperation('signing-in')) return
+
+    try {
+      const { error } = await clientState.client.auth.signInWithPassword({ email, password })
+      if (error) setOperationError(SIGN_IN_ERROR_MESSAGE)
+    } catch {
+      setOperationError(SIGN_IN_ERROR_MESSAGE)
+    } finally {
+      finishOperation()
+    }
+  }
+
+  async function signOut(): Promise<void> {
+    if (clientState.status === 'unavailable' || !beginOperation('signing-out')) return
+
+    try {
+      const { error } = await clientState.client.auth.signOut({ scope: 'local' })
+      if (error) setOperationError(SIGN_OUT_ERROR_MESSAGE)
+    } catch {
+      setOperationError(SIGN_OUT_ERROR_MESSAGE)
+    } finally {
+      finishOperation()
+    }
+  }
+
   return (
     <AuthContext.Provider value={{
       ...authState,
       user: authState.session?.user ?? null,
+      pendingOperation,
+      operationError,
+      signInWithPassword,
+      signOut,
     }}>
       {children}
     </AuthContext.Provider>
