@@ -17,7 +17,7 @@ and a presentation view for displaying them one at a time.
 - Present timers in a fullscreen, looping view with configurable 2-60 second slide duration.
 - Navigate with previous/next controls, keyboard shortcuts, pause/resume, and fullscreen controls.
 - Handle completed countdowns without displaying negative durations.
-- Persist timers and presentation preferences in browser `localStorage`.
+- Persist anonymous timers in browser `localStorage` and authenticated timers in Supabase.
 - Optionally sign in to an existing approved account with Supabase Auth from the Manage header.
 - Provide responsive layouts, empty/error states, focus-managed dialogs, and reduced-motion behavior.
 
@@ -41,12 +41,17 @@ The application is organized around a small repository boundary:
 - `src/pages/` contains the Manage and Presentation views.
 - `src/components/` contains reusable UI, forms, cards, dialogs, and settings.
 - `src/features/timers/` contains timer types, temporal calculations, validation, use cases, settings, and repository contracts.
-- `src/infrastructure/storage/` contains the browser storage implementations.
+- `src/infrastructure/storage/` contains browser storage implementations.
+- `src/infrastructure/supabase/` contains the typed Supabase client and timer adapter.
 
-The UI uses timer use cases through `TimerRepository`; the current repository
-implementation is `LocalStorageTimerRepository`. Presentation state such as
-the active timer, pause state, transition phase, and fullscreen state remains
-in the view rather than being persisted.
+The UI uses timer use cases through `TimerRepository`. Auth-aware composition
+lazily selects `LocalStorageTimerRepository` for anonymous users and a
+user-bound `SupabaseTimerRepository` for authenticated users. Authenticated
+users fail closed when Supabase persistence is unavailable; they never fall
+back to local timer storage. Both application views consume that same selected
+repository. Presentation state such as the active timer, pause state,
+transition phase, and fullscreen state remains in the view rather than being
+persisted.
 
 The main routes are `/manage` for timer management and `/view` for presentation.
 
@@ -85,10 +90,11 @@ Email/password sign-in is available only for an existing approved account;
 Chronoflow does not provide account creation. Signing out affects only the
 current browser session.
 
-Authentication establishes identity, but it does not authorize timer database
-access. Timers and preferences continue to use browser `localStorage` whether
-the user is signed in or anonymous. Enabling authentication does not migrate,
-synchronize, or persist timer data in Supabase.
+Authenticated timer access uses the current Supabase session and PostgreSQL RLS.
+Chronoflow does not migrate, merge, synchronize, upload, or clear anonymous
+local timers when auth state changes. Presentation preferences remain local.
+Authenticated Supabase failures are shown as persistence failures and never
+fall back to `localStorage`.
 
 ### Start the development server
 
@@ -133,29 +139,24 @@ pnpm test:run
 
 ## Persistence
 
-Chronoflow currently stores data in the browser's `localStorage`:
+Chronoflow stores these anonymous and device-local values in `localStorage`:
 
 - timers: `chronoflow:timers:v1`
 - display settings: `chronoflow:settings:v1`
 - presentation settings: `chronoflow:presentation:v1`
 
-Timer data is local to the browser and device. There is currently no server
-persistence or cross-device timer synchronization. Optional Supabase
-authentication establishes user identity only and does not change this
-persistence model.
-
-A `SupabaseTimerRepository` and database-backed timer persistence remain future
-work. Database authorization, migrations, and RLS are separate from the current
-browser-authentication capability.
+When a user is authenticated, timers are instead stored in Supabase and scoped
+to that user by RLS. Switching identity reloads the selected collection; local
+and remote collections remain separate and are never synchronized automatically.
 
 ## Project Status
 
 Chronoflow is actively evolving. The current implementation is a client-side
 MVP with presentation and timer-customization improvements layered on top.
 
-Potential future work includes account-based persistence, authenticated user
-data, cloud synchronization, and controlled AI-assisted timer creation. These
-are roadmap items and are not part of the current implementation.
+Potential future work includes cloud synchronization and controlled AI-assisted
+timer creation. Authenticated persistence is part of the current implementation;
+cloud synchronization is not.
 
 ## License
 

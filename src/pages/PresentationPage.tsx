@@ -24,7 +24,7 @@ interface PresentationPageProps {
 
 export function PresentationPage({ repository }: PresentationPageProps) {
   const navigate = useNavigate()
-  const { timers, isLoading, error, reload } = useTimers(repository)
+  const { timers, isLoading, error, repositoryIdentity, reload } = useTimers(repository)
   const { showSeconds } = useSettings()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
@@ -36,6 +36,13 @@ export function PresentationPage({ repository }: PresentationPageProps) {
   const autoAdvanceTimeout = useRef<number | null>(null)
   const controlsTimeout = useRef<number | null>(null)
   const presentationRef = useRef<HTMLElement>(null)
+  const [renderedRepositoryIdentity, setRenderedRepositoryIdentity] = useState(repositoryIdentity)
+
+  if (renderedRepositoryIdentity !== repositoryIdentity) {
+    setRenderedRepositoryIdentity(repositoryIdentity)
+    setCurrentIndex(0)
+    setTransitionPhase('idle')
+  }
 
   const moveTimer = useCallback(
     (direction: number) => {
@@ -118,6 +125,13 @@ export function PresentationPage({ repository }: PresentationPageProps) {
     const interval = window.setInterval(() => setNow(Temporal.Now.instant()), 1000)
     return () => window.clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (transitionTimeout.current !== null) {
+      window.clearTimeout(transitionTimeout.current)
+      transitionTimeout.current = null
+    }
+  }, [repositoryIdentity])
 
   useEffect(() => {
     const syncFullscreenState = () => setIsFullscreen(document.fullscreenElement !== null)

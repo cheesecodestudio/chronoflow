@@ -1,82 +1,203 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import type { Timer, TimerCustomization, TimerDraft } from './timer.types'
 import type { TimerRepository } from './timer.repository'
-import { LocalStorageTimerRepository } from '../../infrastructure/storage/LocalStorageTimerRepository'
 import { createTimer, updateTimerCustomization } from './timer.use-cases'
+import {
+  TIMER_PERSISTENCE_UNAVAILABLE_MESSAGE,
+  useTimerRepositoryState,
+  type TimerRepositoryStatus,
+} from './TimerRepositoryContext'
 
-const browserRepository = new LocalStorageTimerRepository()
+interface RepositoryIdentity {
+  repository: TimerRepository | null
+  status: TimerRepositoryStatus
+}
 
-export function useTimers(repository: TimerRepository = browserRepository) {
-  const [timers, setTimers] = useState<Timer[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface TimerState {
+  error: string | null
+  identity: RepositoryIdentity | null
+  isLoading: boolean
+  timers: Timer[]
+}
 
-  async function reload() {
-    setIsLoading(true)
+const INITIAL_STATE: TimerState = {
+  error: null,
+  identity: null,
+  isLoading: true,
+  timers: [],
+}
+
+export function useTimers(injectedRepository?: TimerRepository) {
+  const repositoryState = useTimerRepositoryState(injectedRepository)
+  const { repository } = repositoryState
+  const identity = useMemo<RepositoryIdentity>(() => ({
+    repository,
+    status: repositoryState.status,
+  }), [repository, repositoryState.status])
+  const identityRef = useRef(identity)
+  const [state, setState] = useState<TimerState>(INITIAL_STATE)
+
+  useLayoutEffect(() => {
+    identityRef.current = identity
+  }, [identity])
+
+  function isCurrent(operationIdentity: RepositoryIdentity): boolean {
+    return identityRef.current === operationIdentity
+  }
+
+  async function load(operationIdentity: RepositoryIdentity): Promise<boolean> {
+    const operationRepository = operationIdentity.repository
+    if (!operationRepository || !isCurrent(operationIdentity)) return false
+
+    setState((current) => ({
+      error: null,
+      identity: operationIdentity,
+      isLoading: true,
+      timers: current.identity === operationIdentity ? current.timers : [],
+    }))
 
     try {
-      setTimers(await repository.getAll())
-      setError(null)
+      const timers = await operationRepository.getAll()
+      if (!isCurrent(operationIdentity)) return false
+
+      setState({
+        error: null,
+        identity: operationIdentity,
+        isLoading: false,
+        timers,
+      })
+      return true
     } catch {
-      setError('No se pudieron cargar los timers.')
-    } finally {
-      setIsLoading(false)
+      if (!isCurrent(operationIdentity)) return false
+
+      setState({
+        error: 'No se pudieron cargar los timers.',
+        identity: operationIdentity,
+        isLoading: false,
+        timers: [],
+      })
+      return false
     }
   }
 
   useEffect(() => {
-    let isActive = true
-
-    void repository
-      .getAll()
-      .then((items) => {
-        if (isActive) {
-          setTimers(items)
-          setError(null)
-        }
+    if (identity.status === 'initializing') {
+      setState({
+        error: null,
+        identity,
+        isLoading: true,
+        timers: [],
       })
-      .catch(() => {
-        if (isActive) {
-          setError('No se pudieron cargar los timers.')
-        }
-      })
-      .finally(() => {
-        if (isActive) {
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      isActive = false
+      return
     }
-  }, [repository])
 
-  async function create(draft: TimerDraft) {
-    await createTimer(repository, draft)
-    await reload()
+    if (identity.status === 'unavailable') {
+      setState({
+        error: TIMER_PERSISTENCE_UNAVAILABLE_MESSAGE,
+        identity,
+        isLoading: false,
+        timers: [],
+      })
+      return
+    }
+
+    void load(identity)
+  }, [identity])
+
+  async function reload(): Promise<boolean> {
+    return load(identityRef.current)
   }
 
-  async function remove(id: string) {
-    await repository.delete(id)
-    await reload()
+  async function create(draft: TimerDraft): Promise<boolean> {
+    const operationIdentity = identityRef.current
+    const operationRepository = operationIdentity.repository
+    if (!operationRepository) return false
+
+    try {
+      await createTimer(operationRepository, draft, {
+        canPersist: () => isCurrent(operationIdentity),
+      })
+      if (!isCurrent(operationIdentity)) return false
+      await load(operationIdentity)
+      return isCurrent(operationIdentity)
+    } catch (error) {
+      if (isCurrent(operationIdentity)) throw error
+      return false
+    }
   }
 
-  async function restart(id: string) {
-    await repository.restart(id)
-    await reload()
+  async function remove(id: string): Promise<boolean> {
+    const operationIdentity = identityRef.current
+    const operationRepository = operationIdentity.repository
+    if (!operationRepository) return false
+
+    try {
+      await operationRepository.delete(id)
+      if (!isCurrent(operationIdentity)) return false
+      await load(operationIdentity)
+      return isCurrent(operationIdentity)
+    } catch (error) {
+      if (isCurrent(operationIdentity)) throw error
+      return false
+    }
+  }
+
+  async function restart(id: string): Promise<boolean> {
+    const operationIdentity = identityRef.current
+    const operationRepository = operationIdentity.repository
+    if (!operationRepository) return false
+
+    try {
+      await operationRepository.restart(id)
+      if (!isCurrent(operationIdentity)) return false
+      await load(operationIdentity)
+      return isCurrent(operationIdentity)
+    } catch (error) {
+      if (isCurrent(operationIdentity)) throw error
+      return false
+    }
   }
 
   async function updateCustomization(
     id: string,
     customization: Required<TimerCustomization>,
-  ) {
-    const updatedTimer = await updateTimerCustomization(repository, id, customization)
-    setTimers((currentTimers) => currentTimers.map((timer) => (
-      timer.id === updatedTimer.id ? updatedTimer : timer
-    )))
-    setError(null)
+  ): Promise<boolean> {
+    const operationIdentity = identityRef.current
+    const operationRepository = operationIdentity.repository
+    if (!operationRepository) return false
+
+    try {
+      const updatedTimer = await updateTimerCustomization(operationRepository, id, customization)
+      if (!isCurrent(operationIdentity)) return false
+
+      setState((current) => current.identity === operationIdentity
+        ? {
+            ...current,
+            error: null,
+            timers: current.timers.map((timer) => (
+              timer.id === updatedTimer.id ? updatedTimer : timer
+            )),
+          }
+        : current)
+      return true
+    } catch (error) {
+      if (isCurrent(operationIdentity)) throw error
+      return false
+    }
   }
 
-  return { timers, isLoading, error, create, remove, restart, updateCustomization, reload }
+  const hasCurrentState = state.identity === identity
+
+  return {
+    timers: hasCurrentState ? state.timers : [],
+    isLoading: !hasCurrentState || state.isLoading,
+    error: hasCurrentState ? state.error : null,
+    repositoryIdentity: identity,
+    create,
+    remove,
+    restart,
+    updateCustomization,
+    reload,
+  }
 }

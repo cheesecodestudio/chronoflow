@@ -9,7 +9,7 @@ import type { Timer, TimerCustomization } from '../features/timers/timer.types'
 
 interface CustomizeTimerModalProps {
   timer: Timer
-  onSubmit: (customization: Required<TimerCustomization>) => Promise<void>
+  onSubmit: (customization: Required<TimerCustomization>) => Promise<boolean>
   onClose: () => void
   returnFocusTo: HTMLButtonElement | null
 }
@@ -25,8 +25,7 @@ export function CustomizeTimerModal({ timer, onSubmit, onClose, returnFocusTo }:
     setSubmitError(null)
     setIsSubmitting(true)
     try {
-      await onSubmit(customization)
-      onClose()
+      if (await onSubmit(customization)) onClose()
     } catch {
       setSubmitError('No se pudo guardar la personalización. Inténtalo nuevamente.')
     } finally {
