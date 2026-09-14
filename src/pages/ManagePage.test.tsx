@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 
 import { ManagePage } from './ManagePage'
+import { AuthContext, type AuthContextValue } from '../features/auth/AuthContext'
 import { SettingsProvider } from '../features/timers/SettingsContext'
 import {
   LocalStorageTimerRepository,
@@ -48,12 +49,28 @@ class FailingCustomizationRepository extends LocalStorageTimerRepository {
 
 const NOW = Temporal.Instant.from('2024-01-01T00:00:00Z')
 
-function renderManage(repository: LocalStorageTimerRepository) {
+const unavailableAuth: AuthContextValue = {
+  status: 'anonymous',
+  session: null,
+  user: null,
+  error: 'Authentication unavailable',
+  pendingOperation: null,
+  operationError: null,
+  signInWithPassword: vi.fn(async () => undefined),
+  signOut: vi.fn(async () => undefined),
+}
+
+function renderManage(
+  repository: LocalStorageTimerRepository,
+  auth: AuthContextValue = unavailableAuth,
+) {
   return render(
     <MemoryRouter>
-      <SettingsProvider>
-        <ManagePage repository={repository} />
-      </SettingsProvider>
+      <AuthContext.Provider value={auth}>
+        <SettingsProvider>
+          <ManagePage repository={repository} />
+        </SettingsProvider>
+      </AuthContext.Provider>
     </MemoryRouter>,
   )
 }
@@ -70,6 +87,21 @@ describe('ManagePage', () => {
     expect(await screen.findByRole('heading', { name: 'Aún no tienes timers.' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Mis timers', level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Presentar' })).toHaveAttribute('href', '/view')
+  })
+
+  it('composes anonymous authentication into the header without replacing existing actions', async () => {
+    renderManage(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW), {
+      ...unavailableAuth,
+      error: null,
+    })
+
+    await screen.findByRole('heading', { name: 'Aún no tienes timers.' })
+    const headerActions = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(within(headerActions).getByLabelText('Correo electrónico')).toBeInTheDocument()
+    expect(within(headerActions).getByLabelText('Contraseña')).toHaveAttribute('type', 'password')
+    expect(within(headerActions).getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument()
+    expect(within(headerActions).getByRole('link', { name: 'Presentar' })).toHaveAttribute('href', '/view')
+    expect(within(headerActions).getByRole('button', { name: 'Ajustes' })).toBeInTheDocument()
   })
 
   it('opens the settings shell from Manage and closes it without persistence', async () => {
