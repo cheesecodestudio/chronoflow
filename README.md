@@ -18,6 +18,7 @@ and a presentation view for displaying them one at a time.
 - Navigate with previous/next controls, keyboard shortcuts, pause/resume, and fullscreen controls.
 - Handle completed countdowns without displaying negative durations.
 - Persist timers and presentation preferences in browser `localStorage`.
+- Optionally sign in to an existing approved account with Supabase Auth from the Manage header.
 - Provide responsive layouts, empty/error states, focus-managed dialogs, and reduced-motion behavior.
 
 ## Tech Stack
@@ -28,6 +29,7 @@ and a presentation view for displaying them one at a time.
 - React Router
 - Temporal through `temporal-polyfill`
 - Font Awesome icons
+- Supabase Auth through `@supabase/supabase-js`
 - Vitest, Testing Library, and jsdom
 - pnpm
 - Vercel deployment configuration
@@ -79,7 +81,14 @@ or service-role key in a `VITE_` variable. If either approved value is missing,
 Chronoflow remains local-only and the authentication boundary reports
 `Authentication unavailable` without exposing configuration details.
 
-This configuration does not replace local timer persistence.
+Email/password sign-in is available only for an existing approved account;
+Chronoflow does not provide account creation. Signing out affects only the
+current browser session.
+
+Authentication establishes identity, but it does not authorize timer database
+access. Timers and preferences continue to use browser `localStorage` whether
+the user is signed in or anonymous. Enabling authentication does not migrate,
+synchronize, or persist timer data in Supabase.
 
 ### Start the development server
 
@@ -130,8 +139,14 @@ Chronoflow currently stores data in the browser's `localStorage`:
 - display settings: `chronoflow:settings:v1`
 - presentation settings: `chronoflow:presentation:v1`
 
-Timer data is local to the browser and device. There is currently no account,
-authentication, server persistence, or cross-device synchronization.
+Timer data is local to the browser and device. There is currently no server
+persistence or cross-device timer synchronization. Optional Supabase
+authentication establishes user identity only and does not change this
+persistence model.
+
+A `SupabaseTimerRepository` and database-backed timer persistence remain future
+work. Database authorization, migrations, and RLS are separate from the current
+browser-authentication capability.
 
 ## Project Status
 
