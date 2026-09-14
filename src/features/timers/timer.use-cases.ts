@@ -22,6 +22,7 @@ export class TimerValidationException extends Error {
 export interface TimerCreationOptions {
   now?: Temporal.Instant
   createId?: () => string
+  canPersist?: () => boolean
 }
 
 export async function createTimer(
@@ -53,6 +54,10 @@ export async function createTimer(
     draft.type === 'counter'
       ? { ...base, type: 'counter', startAt: draft.startAt }
       : { ...base, type: 'countdown', targetAt: draft.targetAt }
+
+  if (options.canPersist?.() === false) {
+    throw new Error('El repositorio de timers cambió antes de completar la creación.')
+  }
 
   return repository.create(timer)
 }

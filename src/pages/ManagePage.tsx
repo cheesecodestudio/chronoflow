@@ -21,7 +21,17 @@ interface ManagePageProps {
 }
 
 export function ManagePage({ repository }: ManagePageProps) {
-  const { timers, isLoading, error, create, remove, restart, updateCustomization, reload } = useTimers(repository)
+  const {
+    timers,
+    isLoading,
+    error,
+    repositoryIdentity,
+    create,
+    remove,
+    restart,
+    updateCustomization,
+    reload,
+  } = useTimers(repository)
   const [now, setNow] = useState(() => Temporal.Now.instant())
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -36,6 +46,16 @@ export function ManagePage({ repository }: ManagePageProps) {
   const newTimerRef = useRef<HTMLButtonElement>(null)
   const formTriggerRef = useRef<HTMLButtonElement | null>(null)
   const closeCustomization = useCallback(() => setCustomizeTarget(null), [])
+  const [renderedRepositoryIdentity, setRenderedRepositoryIdentity] = useState(repositoryIdentity)
+
+  if (renderedRepositoryIdentity !== repositoryIdentity) {
+    setRenderedRepositoryIdentity(repositoryIdentity)
+    setIsFormOpen(false)
+    setActionError(null)
+    setDeleteConfirm(null)
+    setRestartConfirm(null)
+    setCustomizeTarget(null)
+  }
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Temporal.Now.instant()), 1000)
@@ -43,8 +63,7 @@ export function ManagePage({ repository }: ManagePageProps) {
   }, [])
 
   async function handleCreate(draft: TimerDraft) {
-    await create(draft)
-    setIsFormOpen(false)
+    if (await create(draft)) setIsFormOpen(false)
   }
 
   async function confirmDelete() {
@@ -52,9 +71,9 @@ export function ManagePage({ repository }: ManagePageProps) {
     setDeleteConfirm(null)
     try {
       setActionError(null)
-      await remove(timer!.id)
+      const applied = await remove(timer!.id)
       // The deleted card's trigger no longer exists; keep focus on a useful action.
-      newTimerRef.current?.focus()
+      if (applied) newTimerRef.current?.focus()
     } catch {
       setActionError('No se pudo eliminar el timer.')
     }
@@ -72,7 +91,8 @@ export function ManagePage({ repository }: ManagePageProps) {
   }
 
   async function handleCustomizationSubmit(customization: Required<TimerCustomization>) {
-    if (customizeTarget) await updateCustomization(customizeTarget.timer.id, customization)
+    if (!customizeTarget) return false
+    return updateCustomization(customizeTarget.timer.id, customization)
   }
 
   function openForm(trigger: HTMLButtonElement) {

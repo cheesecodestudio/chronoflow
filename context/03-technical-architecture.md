@@ -17,7 +17,7 @@
 
 La UI no debe conocer directamente cómo se persisten los timers.
 
-Flujo esperado:
+Flujo actual:
 
 ```text
 React UI
@@ -25,27 +25,13 @@ React UI
 State / use cases
    ↓
 TimerRepository
-   ↓
-LocalStorageTimerRepository
-   ↓
-localStorage
+   ├─ usuario anónimo → LocalStorageTimerRepository → localStorage
+   └─ usuario autenticado → SupabaseTimerRepository → Supabase/PostgreSQL + RLS
 ```
 
-Posteriormente:
-
-```text
-React UI
-   ↓
-State / use cases
-   ↓
-TimerRepository
-   ↓
-SupabaseTimerRepository
-   ↓
-Supabase
-```
-
-La migración a Supabase no debe requerir reescribir los componentes principales.
+La composición autenticada falla de forma cerrada si Supabase no está disponible;
+no usa persistencia local como fallback. Las colecciones local y remota permanecen
+separadas y no se migran ni sincronizan automáticamente.
 
 ## Modelo de dominio
 

@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
+import type { Database } from './database.types'
+
 export const AUTHENTICATION_UNAVAILABLE_MESSAGE = 'Authentication unavailable' as const
 
 export interface SupabaseBrowserEnvironment {
@@ -10,14 +12,14 @@ export interface SupabaseBrowserEnvironment {
 export type SupabaseBrowserClientState =
   | {
       readonly status: 'available'
-      readonly client: SupabaseClient
+      readonly client: SupabaseClient<Database>
     }
   | {
       readonly status: 'unavailable'
       readonly message: typeof AUTHENTICATION_UNAVAILABLE_MESSAGE
     }
 
-type SupabaseClientFactory = (url: string, publishableKey: string) => SupabaseClient
+type SupabaseClientFactory = (url: string, publishableKey: string) => SupabaseClient<Database>
 
 function unavailableState(): SupabaseBrowserClientState {
   return {
@@ -28,7 +30,7 @@ function unavailableState(): SupabaseBrowserClientState {
 
 export function createSupabaseBrowserClientState(
   environment: SupabaseBrowserEnvironment,
-  clientFactory: SupabaseClientFactory = (url, publishableKey) => createClient(url, publishableKey),
+  clientFactory: SupabaseClientFactory = (url, publishableKey) => createClient<Database>(url, publishableKey),
 ): SupabaseBrowserClientState {
   const url = environment.VITE_SUPABASE_URL?.trim()
   const publishableKey = environment.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()

@@ -45,7 +45,7 @@ La Fase 0 y el MVP 1 están completados. El flujo local crear → persistir → 
 - [x] Títulos con `trim()`, obligatorios y de máximo 100 caracteres.
 - [x] Vitest para lógica temporal.
 - [x] Notificaciones web + email quedan en roadmap futuro.
-- [x] Supabase se implementa después de validar MVP local.
+- [x] Supabase Auth y la persistencia autenticada se incorporaron después de validar el MVP local.
 - [x] Chat IA se implementa después de Supabase.
 
 ## Fundaciones completadas
@@ -115,8 +115,7 @@ La Fase 0 y el MVP 1 están completados. El flujo local crear → persistir → 
 
 ## Qué NO hacer todavía
 
-- [ ] No configurar Supabase.
-- [ ] No implementar auth.
+- [ ] No ampliar Supabase/Auth fuera del alcance activo de persistencia autenticada y RLS.
 - [ ] No implementar chat IA.
 - [ ] No agregar `Update`/`Edit` sin cumplir el gate de entrada de `MVP-117`.
 - [ ] No implementar notificaciones.
