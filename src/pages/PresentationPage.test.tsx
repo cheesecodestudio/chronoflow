@@ -119,6 +119,10 @@ describe('PresentationPage', () => {
     expect(screen.queryByRole('button', { name: 'Configuración' })).not.toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Controles de presentación' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Siguiente temporizador' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Correo electrónico')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Contraseña')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Iniciar sesión' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cerrar sesión' })).not.toBeInTheDocument()
   })
 
   it('shows retry and Manage navigation for invalid storage', async () => {

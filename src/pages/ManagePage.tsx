@@ -11,6 +11,7 @@ import { SettingsTrigger } from '../components/SettingsTrigger'
 import { Button } from '../components/ui/Button'
 import { buttonClassName } from '../components/ui/buttonVariants'
 import { AlertDialog, Dialog } from '../components/ui/Dialog'
+import { ManageAuthControl } from '../features/auth/ManageAuthControl'
 import type { Timer, TimerCustomization, TimerDraft } from '../features/timers/timer.types'
 import type { TimerRepository } from '../features/timers/timer.repository'
 import { useTimers } from '../features/timers/useTimers'
@@ -88,6 +89,7 @@ export function ManagePage({ repository }: ManagePageProps) {
         <header className="cf-header">
           <Link to="/manage" className="cf-brand" aria-label="Chronoflow, gestión de timers">Chronoflow</Link>
           <nav className="cf-header-actions" aria-label="Navegación principal">
+            <ManageAuthControl />
             <Link className={buttonClassName('ghost')} to="/view">
               <AppIcon name="play" />Presentar
             </Link>
