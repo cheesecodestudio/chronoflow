@@ -97,6 +97,7 @@
 .cf-choice svg { width: 0.75rem; height: 0.75rem; flex-shrink: 0; }
 .cf-swatch { width: 0.75rem; height: 0.75rem; border-radius: 50%; flex-shrink: 0; }
 .cf-error { margin-block: 1rem; border-left: 2px solid var(--destructive); padding: 0.5rem 0.875rem; color: var(--destructive); font-size: 0.875rem; line-height: 1.6; overflow-wrap: anywhere; }
+.cf-success { margin-block: 1rem; border-left: 2px solid var(--primary); padding: 0.5rem 0.875rem; color: var(--primary); font-size: 0.875rem; line-height: 1.6; overflow-wrap: anywhere; }
 .cf-form .cf-error { margin: 0; }
 .cf-settings-section { border-top: 1px solid var(--border); padding-top: 1.25rem; }
 .cf-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; min-height: 48px; font-size: 0.875rem; }
