@@ -1,8 +1,6 @@
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 
 import { Button } from '../../components/ui/Button'
-import { buttonClassName } from '../../components/ui/buttonVariants'
 import { useAuth } from './AuthContext'
 import './manage-auth-control.css'
 
@@ -102,7 +100,6 @@ export function ManageAuthControl() {
           {pendingOperation === 'signing-in' ? 'Iniciando sesión...' : 'Iniciar sesión'}
         </Button>
       </form>
-      <Link className={buttonClassName('ghost')} to="/register">Crear cuenta</Link>
       {operationError ? <p className="cf-auth-error" role="alert">{operationError}</p> : null}
     </section>
   )

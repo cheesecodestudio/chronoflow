@@ -1,13 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { Session, User } from '@supabase/supabase-js'
-import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthContext, type AuthContextValue } from './AuthContext'
 import { ManageAuthControl } from './ManageAuthControl'
 
 const signInWithPassword = vi.fn(async () => undefined)
-const signUp = vi.fn(async () => null)
 const signOut = vi.fn(async () => undefined)
 
 const anonymousAuth: AuthContextValue = {
@@ -18,7 +16,6 @@ const anonymousAuth: AuthContextValue = {
   pendingOperation: null,
   operationError: null,
   signInWithPassword,
-  signUp,
   signOut,
 }
 
@@ -35,11 +32,9 @@ function authenticatedAuth(email = 'person@example.com'): AuthContextValue {
 
 function renderControl(auth: AuthContextValue) {
   return render(
-    <MemoryRouter>
-      <AuthContext.Provider value={auth}>
-        <ManageAuthControl />
-      </AuthContext.Provider>
-    </MemoryRouter>,
+    <AuthContext.Provider value={auth}>
+      <ManageAuthControl />
+    </AuthContext.Provider>,
   )
 }
 
@@ -60,14 +55,14 @@ describe('ManageAuthControl', () => {
     expect(screen.queryByLabelText('Contraseña')).not.toBeInTheDocument()
   })
 
-  it('provides an accessible anonymous email and password form with account creation', () => {
+  it('provides an accessible anonymous email and password form without account links', () => {
     renderControl(anonymousAuth)
 
     expect(screen.getByLabelText('Correo electrónico')).toHaveAttribute('type', 'email')
     expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'password')
     expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeEnabled()
-    expect(screen.getByRole('link', { name: 'Crear cuenta' })).toHaveAttribute('href', '/register')
-    expect(screen.queryByText(/registr|recuper|oauth|magic/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/crear cuenta|registr|recuper|oauth|magic/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
   it('submits entered credentials exactly once and immediately clears the password field', () => {
@@ -100,15 +95,13 @@ describe('ManageAuthControl', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     rerender(
-      <MemoryRouter>
-        <AuthContext.Provider value={{
-          ...anonymousAuth,
-          pendingOperation: 'signing-in',
-          signInWithPassword: signIn,
-        }}>
-          <ManageAuthControl />
-        </AuthContext.Provider>
-      </MemoryRouter>,
+      <AuthContext.Provider value={{
+        ...anonymousAuth,
+        pendingOperation: 'signing-in',
+        signInWithPassword: signIn,
+      }}>
+        <ManageAuthControl />
+      </AuthContext.Provider>,
     )
 
     const pendingButton = screen.getByRole('button', { name: 'Iniciando sesión...' })

@@ -46,7 +46,6 @@ const authenticatedAuth: AuthContextValue = {
   pendingOperation: null,
   operationError: null,
   signInWithPassword: vi.fn(async () => undefined),
-  signUp: vi.fn(async () => null),
   signOut: vi.fn(async () => undefined),
 }
 

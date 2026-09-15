@@ -48,7 +48,6 @@ class StubRepository implements TimerRepository {
 
 const authOperations = {
   signInWithPassword: vi.fn(async () => undefined),
-  signUp: vi.fn(async () => null),
   signOut: vi.fn(async () => undefined),
 };
 

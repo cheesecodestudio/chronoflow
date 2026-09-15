@@ -1,7 +1,7 @@
 import { Temporal } from 'temporal-polyfill'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 
 import { ManagePage } from './ManagePage'
 import { AuthContext, type AuthContextValue } from '../features/auth/AuthContext'
@@ -57,30 +57,22 @@ const unavailableAuth: AuthContextValue = {
   pendingOperation: null,
   operationError: null,
   signInWithPassword: vi.fn(async () => undefined),
-  signUp: vi.fn(async () => null),
   signOut: vi.fn(async () => undefined),
 }
 
 function renderManage(
   repository: LocalStorageTimerRepository,
   auth: AuthContextValue = unavailableAuth,
-  initialEntries: Array<string | { pathname: string; state?: unknown }> = ['/manage'],
 ) {
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
+    <MemoryRouter>
       <AuthContext.Provider value={auth}>
         <SettingsProvider>
           <ManagePage repository={repository} />
-          <LocationStateProbe />
         </SettingsProvider>
       </AuthContext.Provider>
     </MemoryRouter>,
   )
-}
-
-function LocationStateProbe() {
-  const location = useLocation()
-  return <output data-testid="location-state">{JSON.stringify(location.state)}</output>
 }
 
 describe('ManagePage', () => {
@@ -110,15 +102,6 @@ describe('ManagePage', () => {
     expect(within(headerActions).getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument()
     expect(within(headerActions).getByRole('link', { name: 'Presentar' })).toHaveAttribute('href', '/view')
     expect(within(headerActions).getByRole('button', { name: 'Ajustes' })).toBeInTheDocument()
-  })
-
-  it('shows and consumes the transient signup confirmation message', async () => {
-    renderManage(new LocalStorageTimerRepository(new MemoryStorage(), () => NOW), unavailableAuth, [
-      { pathname: '/manage', state: { signup: 'confirmation-required' } },
-    ])
-
-    expect(await screen.findByText('Revisa tu correo para confirmar tu cuenta.')).toBeInTheDocument()
-    expect(screen.getByTestId('location-state')).toHaveTextContent('null')
   })
 
   it('opens the settings shell from Manage and closes it without persistence', async () => {

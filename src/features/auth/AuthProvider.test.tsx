@@ -13,23 +13,12 @@ import {
 type AuthStateChangeCallback = Parameters<SupabaseClient['auth']['onAuthStateChange']>[0]
 type AuthEvent = Parameters<AuthStateChangeCallback>[0]
 type SignInResult = Awaited<ReturnType<SupabaseClient['auth']['signInWithPassword']>>
-type SignUpResult = Awaited<ReturnType<SupabaseClient['auth']['signUp']>>
 type SignOutResult = Awaited<ReturnType<SupabaseClient['auth']['signOut']>>
 
 const SUCCESSFUL_SIGN_IN = {
   data: { user: null, session: null },
   error: null,
 } as unknown as SignInResult
-
-const SUCCESSFUL_SIGN_UP_WITH_SESSION = {
-  data: { user: { id: 'new-user' }, session: createSession('new-user') },
-  error: null,
-} as unknown as SignUpResult
-
-const SUCCESSFUL_SIGN_UP_WITHOUT_SESSION = {
-  data: { user: { id: 'pending-user' }, session: null },
-  error: null,
-} as unknown as SignUpResult
 
 const SUCCESSFUL_SIGN_OUT = { error: null } as SignOutResult
 
@@ -75,17 +64,15 @@ function createAuthHarness({ failOnSubscribe = false } = {}) {
     return { data: { subscription: { unsubscribe } } }
   })
   const signInWithPassword = vi.fn(async (): Promise<SignInResult> => SUCCESSFUL_SIGN_IN)
-  const signUp = vi.fn(async (): Promise<SignUpResult> => SUCCESSFUL_SIGN_UP_WITH_SESSION)
   const signOut = vi.fn(async (): Promise<SignOutResult> => SUCCESSFUL_SIGN_OUT)
   const client = {
-    auth: { onAuthStateChange, signInWithPassword, signUp, signOut },
+    auth: { onAuthStateChange, signInWithPassword, signOut },
   } as unknown as SupabaseClient
 
   return {
     clientState: { status: 'available', client } as const,
     onAuthStateChange,
     signInWithPassword,
-    signUp,
     signOut,
     unsubscribeFunctions,
     emit(index: number, event: AuthEvent, session: Session | null) {
@@ -269,135 +256,6 @@ describe('AuthProvider', () => {
     harness.emit(0, 'SIGNED_IN', createSession('signed-in-by-event'))
     expect(screen.getByTestId('status')).toHaveTextContent('authenticated')
     expect(screen.getByTestId('user')).toHaveTextContent('signed-in-by-event')
-  })
-
-  it('returns the immediate-session signup outcome without mutating lifecycle state directly', async () => {
-    const harness = createAuthHarness()
-    render(
-      <AuthProvider clientState={harness.clientState}>
-        <AuthProbe />
-      </AuthProvider>,
-    )
-    harness.emit(0, 'INITIAL_SESSION', null)
-
-    let outcome: Awaited<ReturnType<AuthContextValue['signUp']>> = null
-    await act(async () => {
-      outcome = await authContext().signUp('person@example.com', 'password-value')
-    })
-
-    expect(outcome).toBe('session')
-    expect(harness.signUp).toHaveBeenCalledWith({
-      email: 'person@example.com',
-      password: 'password-value',
-      options: { emailRedirectTo: new URL('/manage', window.location.origin).href },
-    })
-    expect(screen.getByTestId('status')).toHaveTextContent('anonymous')
-    expect(screen.getByTestId('pending-operation')).toHaveTextContent('no-pending-operation')
-
-    harness.emit(0, 'SIGNED_IN', createSession('new-user'))
-    expect(screen.getByTestId('status')).toHaveTextContent('authenticated')
-  })
-
-  it('returns the confirmation-required signup outcome and remains anonymous', async () => {
-    const harness = createAuthHarness()
-    harness.signUp.mockResolvedValueOnce(SUCCESSFUL_SIGN_UP_WITHOUT_SESSION)
-    render(
-      <AuthProvider clientState={harness.clientState}>
-        <AuthProbe />
-      </AuthProvider>,
-    )
-    harness.emit(0, 'INITIAL_SESSION', null)
-
-    let outcome: Awaited<ReturnType<AuthContextValue['signUp']>> = null
-    await act(async () => {
-      outcome = await authContext().signUp('person@example.com', 'password-value')
-    })
-
-    expect(outcome).toBe('confirmation-required')
-    expect(screen.getByTestId('status')).toHaveTextContent('anonymous')
-    expect(screen.getByTestId('session')).toHaveTextContent('no-session')
-    expect(screen.getByTestId('operation-error')).toHaveTextContent('no-operation-error')
-    expect(screen.getByTestId('pending-operation')).toHaveTextContent('no-pending-operation')
-  })
-
-  it('returns null and exposes only a safe error when signup fails', async () => {
-    const harness = createAuthHarness()
-    const rawProviderError = 'provider rejected password-value'
-    harness.signUp.mockResolvedValueOnce({
-      data: { user: null, session: null },
-      error: new Error(rawProviderError),
-    } as unknown as SignUpResult)
-    render(
-      <AuthProvider clientState={harness.clientState}>
-        <AuthProbe />
-      </AuthProvider>,
-    )
-    harness.emit(0, 'INITIAL_SESSION', null)
-
-    let outcome: Awaited<ReturnType<AuthContextValue['signUp']>> = null
-    await act(async () => {
-      outcome = await authContext().signUp('person@example.com', 'password-value')
-    })
-
-    expect(outcome).toBeNull()
-    expect(screen.getByTestId('operation-error')).toHaveTextContent('Unable to create account')
-    expect(screen.getByTestId('operation-error')).not.toHaveTextContent(rawProviderError)
-    expect(document.body).not.toHaveTextContent('password-value')
-    expect(screen.getByTestId('pending-operation')).toHaveTextContent('no-pending-operation')
-  })
-
-  it('returns null and exposes only a safe error when signup throws', async () => {
-    const harness = createAuthHarness()
-    const rawProviderError = 'raw thrown signup failure'
-    harness.signUp.mockRejectedValueOnce(new Error(rawProviderError))
-    render(
-      <AuthProvider clientState={harness.clientState}>
-        <AuthProbe />
-      </AuthProvider>,
-    )
-    harness.emit(0, 'INITIAL_SESSION', null)
-
-    let outcome: Awaited<ReturnType<AuthContextValue['signUp']>> = null
-    await act(async () => {
-      outcome = await authContext().signUp('person@example.com', 'password-value')
-    })
-
-    expect(outcome).toBeNull()
-    expect(screen.getByTestId('operation-error')).toHaveTextContent('Unable to create account')
-    expect(screen.getByTestId('operation-error')).not.toHaveTextContent(rawProviderError)
-    expect(screen.getByTestId('pending-operation')).toHaveTextContent('no-pending-operation')
-  })
-
-  it('blocks duplicate signup operations and clears pending after completion', async () => {
-    const harness = createAuthHarness()
-    const signUp = deferred<SignUpResult>()
-    harness.signUp.mockReturnValueOnce(signUp.promise)
-    render(
-      <AuthProvider clientState={harness.clientState}>
-        <AuthProbe />
-      </AuthProvider>,
-    )
-    harness.emit(0, 'INITIAL_SESSION', null)
-
-    let firstOperation!: Promise<Awaited<ReturnType<AuthContextValue['signUp']>>>
-    let duplicateOperation!: Promise<Awaited<ReturnType<AuthContextValue['signUp']>>>
-    act(() => {
-      firstOperation = authContext().signUp('person@example.com', 'first-password')
-      duplicateOperation = authContext().signUp('person@example.com', 'duplicate-password')
-    })
-
-    await act(async () => {
-      expect(await duplicateOperation).toBeNull()
-    })
-    expect(harness.signUp).toHaveBeenCalledOnce()
-    expect(screen.getByTestId('pending-operation')).toHaveTextContent('signing-up')
-    expect(screen.getByTestId('operation-error')).toHaveTextContent('Authentication operation already in progress')
-
-    await act(async () => {
-      signUp.resolve(SUCCESSFUL_SIGN_UP_WITH_SESSION)
-      expect(await firstOperation).toBe('session')
-    })
-    expect(screen.getByTestId('pending-operation')).toHaveTextContent('no-pending-operation')
   })
 
   it('blocks duplicate sign-in calls synchronously and clears pending after success', async () => {
@@ -813,12 +671,10 @@ describe('AuthProvider', () => {
 
     await act(async () => {
       await authContext().signInWithPassword('person@example.com', 'password')
-      expect(await authContext().signUp('person@example.com', 'password')).toBeNull()
       await authContext().signOut()
     })
 
     expect(harness.signInWithPassword).not.toHaveBeenCalled()
-    expect(harness.signUp).not.toHaveBeenCalled()
     expect(harness.signOut).not.toHaveBeenCalled()
     expect(screen.getByTestId('status')).toHaveTextContent('anonymous')
     expect(screen.getByTestId('error')).toHaveTextContent(AUTHENTICATION_UNAVAILABLE_MESSAGE)
