@@ -86,8 +86,9 @@ or service-role key in a `VITE_` variable. If either approved value is missing,
 Chronoflow remains local-only and the authentication boundary reports
 `Authentication unavailable` without exposing configuration details.
 
-Email/password sign-in is available only for an existing approved account;
-Chronoflow does not provide account creation. Signing out affects only the
+Email/password sign-in and public account creation are available when Supabase
+authentication is configured. New accounts must confirm their email before the
+hosted authentication flow establishes a session. Signing out affects only the
 current browser session.
 
 Authenticated timer access uses the current Supabase session and PostgreSQL RLS.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Temporal } from 'temporal-polyfill'
 
 import { AppIcon } from '../components/AppIcon'
@@ -16,11 +16,21 @@ import type { Timer, TimerCustomization, TimerDraft } from '../features/timers/t
 import type { TimerRepository } from '../features/timers/timer.repository'
 import { useTimers } from '../features/timers/useTimers'
 
+const SIGN_UP_CONFIRMATION_MESSAGE = 'Revisa tu correo para confirmar tu cuenta.'
+
+function isSignUpConfirmationState(state: unknown): boolean {
+  return typeof state === 'object'
+    && state !== null
+    && (state as { signup?: unknown }).signup === 'confirmation-required'
+}
+
 interface ManagePageProps {
   repository?: TimerRepository
 }
 
 export function ManagePage({ repository }: ManagePageProps) {
+  const location = useLocation()
+  const navigate = useNavigate()
   const {
     timers,
     isLoading,
@@ -46,6 +56,9 @@ export function ManagePage({ repository }: ManagePageProps) {
   const newTimerRef = useRef<HTMLButtonElement>(null)
   const formTriggerRef = useRef<HTMLButtonElement | null>(null)
   const closeCustomization = useCallback(() => setCustomizeTarget(null), [])
+  const [authNotice] = useState<string | null>(() => (
+    isSignUpConfirmationState(location.state) ? SIGN_UP_CONFIRMATION_MESSAGE : null
+  ))
   const [renderedRepositoryIdentity, setRenderedRepositoryIdentity] = useState(repositoryIdentity)
 
   if (renderedRepositoryIdentity !== repositoryIdentity) {
@@ -61,6 +74,12 @@ export function ManagePage({ repository }: ManagePageProps) {
     const interval = window.setInterval(() => setNow(Temporal.Now.instant()), 1000)
     return () => window.clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (!isSignUpConfirmationState(location.state)) return
+
+    navigate('/manage', { replace: true, state: null })
+  }, [location.state, navigate])
 
   async function handleCreate(draft: TimerDraft) {
     if (await create(draft)) setIsFormOpen(false)
@@ -130,6 +149,8 @@ export function ManagePage({ repository }: ManagePageProps) {
             <AppIcon name="plus" />Nuevo timer
           </Button>
         </section>
+
+        {authNotice ? <p className="cf-success" role="status">{authNotice}</p> : null}
 
         {actionError ? <p className="cf-error" role="alert">{actionError}</p> : null}
 

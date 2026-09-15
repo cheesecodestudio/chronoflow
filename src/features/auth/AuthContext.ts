@@ -2,7 +2,8 @@ import { createContext, useContext } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 
 export type AuthLifecycleStatus = 'initializing' | 'anonymous' | 'authenticated'
-export type PendingAuthOperation = 'signing-in' | 'signing-out' | null
+export type PendingAuthOperation = 'signing-in' | 'signing-up' | 'signing-out' | null
+export type SignUpOutcome = 'session' | 'confirmation-required'
 
 export interface AuthContextValue {
   status: AuthLifecycleStatus
@@ -12,6 +13,7 @@ export interface AuthContextValue {
   pendingOperation: PendingAuthOperation
   operationError: string | null
   signInWithPassword: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string) => Promise<SignUpOutcome | null>
   signOut: () => Promise<void>
 }
 

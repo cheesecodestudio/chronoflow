@@ -5,6 +5,7 @@ import {
   AuthContext,
   type AuthLifecycleStatus,
   type PendingAuthOperation,
+  type SignUpOutcome,
 } from './AuthContext'
 import {
   AUTHENTICATION_UNAVAILABLE_MESSAGE,
@@ -30,6 +31,7 @@ const INITIAL_AUTH_STATE: AuthState = {
 }
 
 const SIGN_IN_ERROR_MESSAGE = 'Unable to sign in'
+const SIGN_UP_ERROR_MESSAGE = 'Unable to create account'
 const SIGN_OUT_ERROR_MESSAGE = 'Unable to sign out'
 const OPERATION_IN_PROGRESS_ERROR_MESSAGE = 'Authentication operation already in progress'
 
@@ -120,6 +122,32 @@ export function AuthProvider({ children, clientState = supabaseBrowserClient }: 
     }
   }
 
+  async function signUp(email: string, password: string): Promise<SignUpOutcome | null> {
+    if (clientState.status === 'unavailable' || !beginOperation('signing-up')) return null
+
+    try {
+      const emailRedirectTo =
+        new URL('/manage', window.location.origin).href
+      const { data, error } = await clientState.client.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo },
+      })
+
+      if (error || !data.user) {
+        setOperationError(SIGN_UP_ERROR_MESSAGE)
+        return null
+      }
+
+      return data.session ? 'session' : 'confirmation-required'
+    } catch {
+      setOperationError(SIGN_UP_ERROR_MESSAGE)
+      return null
+    } finally {
+      finishOperation()
+    }
+  }
+
   async function signOut(): Promise<void> {
     if (clientState.status === 'unavailable' || !beginOperation('signing-out')) return
 
@@ -140,6 +168,7 @@ export function AuthProvider({ children, clientState = supabaseBrowserClient }: 
       pendingOperation,
       operationError,
       signInWithPassword,
+      signUp,
       signOut,
     }}>
       {children}
